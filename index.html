@@ -86,6 +86,13 @@
                     <select id="filter-oficiante" class="bg-slate-50 border rounded-lg px-3 py-2 text-sm focus:ring-2 ring-blue-500 outline-none">
                         <option value="">Todos Oficiantes</option>
                     </select>
+
+                     <!-- 🔥 NOVO: PERÍODO -->
+                    <div style="display:flex; align-items:center; gap:5px; margin-left:10px;">
+                        <input type="date" id="dataInicio">
+                        <span>até</span>
+                        <input type="date" id="dataFim">
+                    </div>
                 </div>
                 <div class="flex flex-wrap gap-2">
                     
@@ -1165,7 +1172,33 @@
             
             
         
-            const rawData = typeof getFilteredData === 'function' ? getFilteredData() : [];
+            // 🔹 Pega datas dos inputs (se existir)
+            const dataInicioStr = document.getElementById("dataInicio")?.value;
+            const dataFimStr = document.getElementById("dataFim")?.value;
+            
+            // 🔹 Define período
+            let dataInicio, dataFim;
+            
+            if (dataInicioStr && dataFimStr) {
+                dataInicio = new Date(dataInicioStr + "T00:00:00");
+                dataFim = new Date(dataFimStr + "T23:59:59");
+            } else {
+                // 🔥 usa mês atual do calendário
+                dataInicio = calendar.view.activeStart;
+                dataFim = calendar.view.activeEnd;
+            }
+            
+            // 🔹 Busca dados
+            let rawData = typeof getFilteredData === 'function' ? getFilteredData() : [];
+            
+            // 🔥 FILTRA AQUI (ESSA É A PARTE MAIS IMPORTANTE)
+            rawData = rawData.filter(e => {
+                if (!e.data) return false;
+            
+                const dataEvento = new Date(e.data + "T00:00:00");
+            
+                return dataEvento >= dataInicio && dataEvento <= dataFim;
+            });
         
             if (!rawData.length) {
                 alert("Nenhum dado encontrado.");
@@ -1178,7 +1211,7 @@
             // Agrupar por data
             const grouped = {};
             rawData.forEach(e => {
-                const d = e.data.substring(0,10);
+                const d = (e.data || "").substring(0,10);
                 if (!grouped[d]) grouped[d] = [];
                 grouped[d].push(e);
             });
@@ -1187,7 +1220,15 @@
             doc.text("Escala Geral Setores", 14, 10);
         
             doc.setFontSize(9);
-            doc.text(`Período: ${calendar.view.title}`, 14, 16);
+            function formatarDataBR(data) {
+                return data.toLocaleDateString('pt-BR');
+            }
+            
+            doc.text(
+                `Período: ${formatarDataBR(dataInicio)} até ${formatarDataBR(dataFim)}`,
+                14,
+                16
+            );
 
             
             
