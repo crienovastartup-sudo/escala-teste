@@ -1384,8 +1384,11 @@
                 };
         
                 grouped[dateKey].forEach(e => {
-                     const turno = (e.turno || "").toUpperCase().trim();
-                     turno === "PRIMEIRO" ? "1" :
+
+                    const turno = (e.turno || "").toUpperCase().trim();
+
+                    const turnoNum =
+                        turno === "PRIMEIRO" ? "1" :
                         (turno === "SEGUNDO" || turno === "SEGUNDO PARC") ? "2" :
                         turno === "TERCEIRO" ? "3" :
                         "";
