@@ -1469,29 +1469,25 @@
             didParseCell: function (data) {
 
 
-                 // 🔴 Se for sábado, deixar data vermelha e negrito
-                if (data.section === 'body' && data.column.index === 0) {
-                
+                    if (data.section !== 'body') return;
+
+                    const col = data.column.index;
                     const texto = data.cell.raw || "";
+                    const textoUpper = texto.toUpperCase();
                 
-                    if (texto.toUpperCase().includes("SÁB")) {
-                        data.cell.styles.textColor = [200, 0, 0]; // vermelho
-                        data.cell.styles.fontStyle = "bold";
+                    // 🔥 DATA maior e negrito
+                    if (col === 0) {
+                        data.cell.styles.fontSize = 9;
+                        data.cell.styles.fontStyle = 'bold';
+                
+                        // 🔴 Sábado
+                        if (textoUpper.includes("SÁB") || textoUpper.includes("SAB")) {
+                            data.cell.styles.textColor = [200, 0, 0];
+                        }
                     }
                 
-                }   
-
-                    
-                const col = data.column.index;
-            
-                // 🔥 DATA maior
-                if (data.section === 'body' && col === 0) {
-                    data.cell.styles.fontSize = 9;
-                    data.cell.styles.fontStyle = 'bold';
-                }
-            
-                // Bordas
-                data.cell.styles.lineWidth = 0.4;
+                    // Bordas
+                    data.cell.styles.lineWidth = 0.4;
         
                 // Ignora cabeçalho
                 if (data.section !== 'body') return;
