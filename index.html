@@ -1369,6 +1369,26 @@
         
             doc.setFontSize(10);
             doc.text(`Período: ${calendar.view.title}`, 14, 22);
+
+                const agora = new Date();
+
+                const dataHora = agora.toLocaleString('pt-BR', {
+                    day: '2-digit',
+                    month: '2-digit',
+                    year: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit'
+                });
+                
+                // Fonte menor
+                doc.setFontSize(7);
+                
+                // Alinhar à direita (largura da página)
+                const pageWidth = doc.internal.pageSize.getWidth();
+                
+                doc.text(`Gerado em: ${dataHora}`, pageWidth - 14, 15, {
+                    align: 'right'
+                });
         
             const rows = [];
         
@@ -1514,25 +1534,6 @@
                     data.cell.styles.fillColor = [255, 220, 235];
                 }
 
-                const agora = new Date();
-
-                const dataHora = agora.toLocaleString('pt-BR', {
-                    day: '2-digit',
-                    month: '2-digit',
-                    year: 'numeric',
-                    hour: '2-digit',
-                    minute: '2-digit'
-                });
-                
-                // Fonte menor
-                doc.setFontSize(7);
-                
-                // Alinhar à direita (largura da página)
-                const pageWidth = doc.internal.pageSize.getWidth();
-                
-                doc.text(`Gerado em: ${dataHora}`, pageWidth - 14, 15, {
-                    align: 'right'
-                });
             },
             theme: 'grid'
         });
