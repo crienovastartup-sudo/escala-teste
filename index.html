@@ -1255,7 +1255,7 @@
             });
         
             doc.autoTable({
-                startY: 20,
+                startY: 18,
                 head: [[
                     "Data",
                     "Bat Turno 1", "Bat Turno 2", "Bat Turno 3",
@@ -1451,7 +1451,7 @@
             }
         
             doc.autoTable({
-            startY: 28,
+            startY: 18,
             head: head,
             body: body,
             styles: {
@@ -1512,6 +1512,26 @@
                 if (setorSelecionado === "SELAMENTO") {
                     data.cell.styles.fillColor = [255, 220, 235];
                 }
+
+                const agora = new Date();
+
+                const dataHora = agora.toLocaleString('pt-BR', {
+                    day: '2-digit',
+                    month: '2-digit',
+                    year: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit'
+                });
+                
+                // Fonte menor
+                doc.setFontSize(7);
+                
+                // Alinhar à direita (largura da página)
+                const pageWidth = doc.internal.pageSize.getWidth();
+                
+                doc.text(`Gerado em: ${dataHora}`, pageWidth - 14, 15, {
+                    align: 'right'
+                });
             },
             theme: 'grid'
         });
