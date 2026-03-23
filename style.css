@@ -1,0 +1,108 @@
+/* Estilos fundamentais para os Cards do Calendário */
+.fc-event {
+    background: transparent !important;
+    border: none !important;
+    padding: 0 !important;
+    cursor: pointer;
+    margin-bottom: 2px !important;
+}
+
+.fc-event-main {
+    padding: 0 !important;
+}
+
+/* Container do Card Customizado */
+.event-card-custom {
+    padding: 6px;
+    border-radius: 6px;
+    border-left: 4px solid #64748b;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+    background-color: #ffffff;
+    transition: all 0.2s;
+    min-height: 55px;
+}
+
+.event-card-custom:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+}
+
+/* Cores por Setor (Atualizadas conforme sua solicitação) */
+.card-batisterio { 
+    background-color: #b0e0e6 !important; 
+    border-left-color: #00acc1 !important; 
+}
+
+.card-recepcao { 
+    background-color: #fef9c3 !important; 
+    border-left-color: #facc15 !important; 
+}
+
+.card-selamento { 
+    background-color: #dcfce7 !important; 
+    border-left-color: #22c55e !important; 
+}
+
+/* Tipografia do Card */
+.card-title {
+    color: #1e293b; /* Preto/Slate escuro para legibilidade */
+    font-weight: 700;
+    font-size: 11px;
+    line-height: 1.2;
+    display: block;
+}
+
+.card-subtitle {
+    color: #475569;
+    font-size: 9px;
+    font-weight: 500;
+    text-transform: uppercase;
+}
+
+/* Loader Personalizado */
+.loader { 
+    border-top-color: #3498db; 
+    animation: spinner 1.5s linear infinite; 
+}
+
+@keyframes spinner { 
+    0% { transform: rotate(0deg); } 
+    100% { transform: rotate(360deg); } 
+}
+
+/* Ajustes de Interface do FullCalendar */
+.fc .fc-toolbar-title { 
+    font-size: 1.25rem !important; 
+    font-weight: 700; 
+    color: #1e293b; 
+}
+
+.fc .fc-button-primary { 
+    background-color: #3b82f6; 
+    border: none; 
+}
+
+.fc .fc-button-primary:hover { 
+    background-color: #2563eb; 
+}
+
+/* Filtros no Cabeçalho */
+.calendar-filters {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    padding: 15px;
+    background: #f8fafc;
+    border-bottom: 1px solid #e2e8f0;
+    margin-bottom: 10px;
+}
+
+/* Responsividade de Imagens e Layout */
+#oficiantes-list img {
+    object-fit: cover;
+}
+
+@media (max-width: 768px) {
+    .calendar-filters select { width: 100%; }
+    .fc-toolbar { flex-direction: column; gap: 10px; }
+}

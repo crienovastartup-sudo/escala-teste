@@ -1,0 +1,1710 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistema de Escala - Templo</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/index.global.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #f8fafc; color: #1e293b; }
+        
+        /* Cores dos Cards com FONTES PRETAS (#000000) */
+        .card-batisterio { background-color: #e0f2fe !important; border-color: #0ea5e9 !important; color: #000000 !important; }
+        .card-recepcao { background-color: #fefce8 !important; border-color: #eab308 !important; color: #000000 !important; }
+        .card-selamento { background-color: #ffdceb !important;  /* rosa claro */ border-color: #ec4899 !important;      /* rosa mais forte na borda */ color: #000000 !important; }
+        .card-default { background-color: #f1f5f9 !important; border-color: #94a3b8 !important; color: #000000 !important; }
+        
+        .fc-event { border: none !important; background: transparent !important; padding: 0 !important; margin: 1px 0 !important; }
+        .event-card-custom { transition: all 0.2s ease; box-shadow: 0 1px 2px rgba(0,0,0,0.05); border-left-width: 4px; }
+        .modal-blur { backdrop-filter: blur(8px); background-color: rgba(15, 23, 42, 0.4); }
+        .tab-active { color: #2563eb; border-bottom: 2px solid #2563eb; }
+        
+        .loading-spinner { border: 3px solid #f3f3f3; border-top: 3px solid #3498db; border-radius: 50%; width: 24px; height: 24px; animation: spin 1s linear infinite; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+        /* REMOVER "ALL-DAY" E COLUNA DE HORA NA VISUALIZAÇÃO DE LISTA */
+        .fc-list-event-time { display: none !important; }
+        .fc-list-event-dot { display: none !important; }
+        .fc-list-event-title { padding-left: 0 !important; }
+        .fc-list-table { border-collapse: separate; border-spacing: 0 8px; }
+        .fc-list-day-cushion { background-color: #f1f5f9 !important; }
+
+        /* Mobile Optimization for Calendar */
+        @media (max-width: 640px) {
+            .fc-toolbar-title { font-size: 1.1rem !important; }
+            .fc-header-toolbar { flex-direction: column; gap: 10px; }
+            .fc-view-harness { height: 600px !important; }
+            .event-card-custom { padding: 4px !important; }
+            /* Garante que o texto preto não fique pequeno demais no celular */
+            .event-card-custom span { font-size: 9px !important; font-weight: 700 !important; }
+        }
+    </style>
+</head>
+<body class="min-h-screen">
+
+    <nav class="bg-white border-b sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-16 items-center">
+                <div class="flex items-center gap-2">
+                    <div class="bg-blue-600 p-2 rounded-lg"><i data-lucide="users" class="text-white w-6 h-6"></i></div>
+                    <span class="text-xl font-extrabold tracking-tight text-slate-800">Escala<span class="text-blue-600">Templo</span></span>
+                </div>
+                <div class="flex gap-1">
+                    <button onclick="switchTab('calendar')" id="tab-calendar" class="px-4 py-2 text-sm font-medium transition-colors hover:text-blue-600 flex items-center gap-2 border-b-2 border-transparent">
+                        <i data-lucide="calendar" class="w-4 h-4"></i> <span class="hidden sm:inline">Calendário</span>
+                    </button>
+                    <button onclick="switchTab('config')" id="tab-config" class="px-4 py-2 text-sm font-medium transition-colors hover:text-blue-600 flex items-center gap-2 border-b-2 border-transparent">
+                        <i data-lucide="settings" class="w-4 h-4"></i> <span class="hidden sm:inline">Configurar</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <main class="max-w-7xl mx-auto px-4 py-8">
+        <section id="sec-calendar" class="space-y-6">
+            <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white p-4 rounded-xl shadow-sm border">
+                <div class="flex flex-wrap gap-3">
+                    <select id="filter-setor" class="bg-slate-50 border rounded-lg px-3 py-2 text-sm focus:ring-2 ring-blue-500 outline-none">
+                        <option value="">Todos Setores</option>
+                        <option value="BATISTÉRIO">Batistério</option>
+                        <option value="RECEPÇÃO">Recepção</option>
+                        <option value="SELAMENTO">Selamento</option>
+                    </select>
+                    <select id="filter-turno" class="bg-slate-50 border rounded-lg px-3 py-2 text-sm focus:ring-2 ring-blue-500 outline-none">
+                        <option value="">Todos Turnos</option>
+                        <option value="PRIMEIRO">Primeiro</option>
+                        <option value="SEGUNDO">Segundo</option>
+                        <option value="SEGUNDO PARC">Segundo Parcial</option>
+                        <option value="TERCEIRO">Terceiro</option>
+                    </select>
+                    <select id="filter-oficiante" class="bg-slate-50 border rounded-lg px-3 py-2 text-sm focus:ring-2 ring-blue-500 outline-none">
+                        <option value="">Todos Oficiantes</option>
+                    </select>
+                </div>
+                <div class="flex flex-wrap gap-2">
+                    
+                    <button onclick="relatorioCalendarioAgrupadoData()" class="bg-indigo-700 text-white px-4 py-2 rounded-lg text-xs font-semibold flex items-center gap-2 hover:bg-slate-700 transition-all">
+                        <i data-lucide="layers" class="w-4 h-4"></i> Por Data
+                    </button>
+                    <button onclick="relatorioEscalaPorOficiante()" class="bg-indigo-700 text-white px-4 py-2 rounded-lg text-xs font-semibold flex items-center gap-2 hover:bg-slate-700 transition-all">
+                        <i data-lucide="user-check" class="w-4 h-4"></i> Por Oficiante
+                    </button>
+                    <button onclick="relatorioEscalaSetores()" class="bg-indigo-700 text-white px-4 py-2 rounded-lg text-xs font-semibold flex items-center gap-2 hover:bg-slate-700 transition-all">
+                        <i data-lucide="table" class="w-4 h-4"></i> Geral Setores
+                    </button>
+                    <button onclick="relatorioIndividualPorSetor()" class="bg-indigo-700 text-white px-4 py-2 rounded-lg text-xs font-semibold flex items-center gap-2 hover:bg-slate-700 transition-all">
+                        <i data-lucide="table" class="w-4 h-4"></i> Por Setor
+                    </button>
+                </div>
+            </div>
+            <div class="bg-white p-4 sm:p-6 rounded-2xl shadow-sm border border-slate-200">
+                <div id="calendar"></div>
+            </div>
+        </section>
+
+        <section id="sec-config" class="hidden space-y-8">
+            <div class="grid lg:grid-cols-3 gap-8">
+                <div class="lg:col-span-1 space-y-6">
+                    <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
+                        <div class="flex items-center justify-between mb-6">
+                            <h2 class="font-bold text-lg flex items-center gap-2"><i data-lucide="users" class="w-5 h-5 text-blue-600"></i> Oficiantes</h2>
+                            <button onclick="openOficianteModal()" class="p-2 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100"><i data-lucide="plus" class="w-5 h-5"></i></button>
+                        </div>
+                        <div id="oficiantes-list" class="space-y-3 max-h-[500px] overflow-y-auto pr-2"></div>
+                    </div>
+                </div>
+                <div class="lg:col-span-2 space-y-6">
+                    <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
+
+                            <div class="flex items-center justify-between mb-4">
+
+                            <div class="flex items-center gap-3">
+                            <h3 class="font-bold text-sm">Registros de Escala</h3>
+                            
+                            <button onclick="openEscalaModal()"
+                            class="bg-blue-600 text-white px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1 hover:bg-blue-700 shadow">
+                            
+                            <i data-lucide="calendar-plus" class="w-4 h-4"></i>
+                            Adicionar
+                            
+                            </button>
+                            </div>
+                                <!-- Novo filtro de mês para a Gestão -->
+                                <div class="flex flex-wrap items-center gap-2">
+
+                                <input type="month" id="gestao-month-filter"
+                                    onchange="renderGestaoEscala()"
+                                    class="p-2 bg-slate-50 border border-slate-200 rounded-lg text-xs">
+                            
+                                <select id="gestao-oficiante-filter"
+                                    onchange="renderGestaoEscala()"
+                                    class="p-2 bg-slate-50 border border-slate-200 rounded-lg text-xs">
+                            
+                                    <option value="">Todos Oficiantes</option>
+                                </select>
+                            
+                                <select id="gestao-turno-filter"
+                                    onchange="renderGestaoEscala()"
+                                    class="p-2 bg-slate-50 border border-slate-200 rounded-lg text-xs">
+                            
+                                    <option value="">Todos Turnos</option>
+                                    <option value="PRIMEIRO">Primeiro</option>
+                                    <option value="SEGUNDO">Segundo</option>
+                                    <option value="SEGUNDO PARC">Segundo Parc</option>
+                                    <option value="TERCEIRO">Terceiro</option>
+                            
+                                </select>
+                            
+                            </div>
+                            </div>
+                            
+                            <div id="gestao-escala-lista" class="space-y-2">
+                                <!-- Os itens aparecerão aqui filtrados -->
+                            </div>
+                        
+                        <div class="overflow-x-auto rounded-xl border border-slate-100">
+                            <table class="w-full text-left">
+                                <thead class="bg-slate-50">
+                                    <tr>
+                                        <th class="p-4 text-xs font-bold text-slate-500 uppercase">Data</th>
+                                        <th class="p-4 text-xs font-bold text-slate-500 uppercase">Oficiante</th>
+                                        <th class="p-4 text-xs font-bold text-slate-500 uppercase">Setor</th>
+                                        <th class="p-4 text-xs font-bold text-slate-500 uppercase text-right">Ações</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="escala-table-body" class="divide-y divide-slate-100"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Modal Oficiante (Novo/Editar) -->
+    <div id="modal-oficiante" class="fixed inset-0 z-[60] hidden modal-blur flex items-center justify-center p-4">
+        <div class="bg-white rounded-3xl w-full max-w-md shadow-2xl overflow-hidden">
+            <div class="p-6 border-b bg-slate-50 flex justify-between items-center">
+                <h3 class="text-xl font-extrabold text-slate-800" id="oficiante-modal-title">Novo Oficiante</h3>
+                <button onclick="closeModal('modal-oficiante')" class="text-slate-400 hover:text-slate-600"><i data-lucide="x" class="w-6 h-6"></i></button>
+            </div>
+            <form id="form-oficiante" class="p-6 space-y-4">
+                <input type="hidden" id="oficiante-id">
+                <div class="space-y-2">
+                    <label class="text-xs font-bold text-slate-500 uppercase">Nome Completo</label>
+                    <input type="text" id="oficiante-nome" required class="w-full p-3 rounded-xl border border-slate-200 focus:ring-2 ring-blue-500 outline-none">
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div class="space-y-2">
+                        <label class="text-xs font-bold text-slate-500 uppercase">Foto Masculina</label>
+                        <input type="file" id="oficiante-foto1" accept="image/*" class="w-full text-xs text-slate-500 file:mr-2 file:py-1 file:px-2 file:rounded-full file:border-0 file:bg-blue-50 file:text-blue-700">
+                        <div id="prev-foto1" class="hidden text-[10px] text-blue-600 mt-1 truncate">Arquivo já vinculado</div>
+                    </div>
+                    <div class="space-y-2">
+                        <label class="text-xs font-bold text-slate-500 uppercase">Foto Feminina</label>
+                        <input type="file" id="oficiante-foto2" accept="image/*" class="w-full text-xs text-slate-500 file:mr-2 file:py-1 file:px-2 file:rounded-full file:border-0 file:bg-blue-50 file:text-blue-700">
+                        <div id="prev-foto2" class="hidden text-[10px] text-blue-600 mt-1 truncate">Arquivo já vinculado</div>
+                    </div>
+                </div>
+                <button type="submit" class="w-full bg-blue-600 text-white py-4 rounded-xl font-bold hover:bg-blue-700">Salvar Oficiante</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal Escala (Novo/Editar) -->
+        <div id="modal-escala" class="fixed inset-0 z-[60] hidden modal-blur flex items-center justify-center p-4">
+            <div class="bg-white rounded-3xl w-full max-w-lg shadow-2xl overflow-hidden">
+                <div class="p-6 border-b bg-slate-50 flex justify-between items-center">
+                    <h3 class="text-xl font-extrabold text-slate-800" id="escala-modal-title">Agendar Escala</h3>
+                    <button onclick="closeModal('modal-escala')" class="text-slate-400 hover:text-slate-600"><i data-lucide="x" class="w-6 h-6"></i></button>
+                </div>
+                <form id="form-escala" class="p-6 space-y-5">
+                    <input type="hidden" id="escala-id-original">
+                    <input type="hidden" id="escala-data-original">
+                    <input type="hidden" id="escala-turno-original">
+                    
+                    <div class="space-y-2">
+                        <label class="text-xs font-bold text-slate-500 uppercase">Oficiante</label>
+                        <select id="escala-oficiante" required class="w-full p-3 rounded-xl border border-slate-200 outline-none focus:ring-2 focus:ring-blue-500"></select>
+                    </div>
+    
+                    <div class="grid grid-cols-2 gap-4">
+                        <div class="space-y-2">
+                            <label class="text-xs font-bold text-slate-500 uppercase">Data</label>
+                            <input type="date" id="escala-data" required class="w-full p-3 rounded-xl border border-slate-200 outline-none focus:ring-2 focus:ring-blue-500">
+                        </div>
+                        <div class="space-y-2">
+                            <label class="text-xs font-bold text-slate-500 uppercase">Setor</label>
+                            <select id="escala-setor" required class="w-full p-3 rounded-xl border border-slate-200 outline-none focus:ring-2 focus:ring-blue-500">
+                                <option value="BATISTÉRIO">Batistério</option>
+                                <option value="RECEPÇÃO">Recepção</option>
+                                <option value="SELAMENTO">Selamento</option>
+                            </select>
+                        </div>
+                    </div>
+    
+                    <div class="space-y-2">
+                        <label class="text-xs font-bold text-slate-500 uppercase">Turno</label>
+                        <select id="escala-turno" required class="w-full p-3 rounded-xl border border-slate-200 outline-none focus:ring-2 focus:ring-blue-500">
+                            <option value="PRIMEIRO">Primeiro (07h-13h)</option>
+                            <option value="SEGUNDO">Segundo (12h30-18h)</option>
+                            <option value="SEGUNDO PARC">Segundo Parcial (12h30-18h)</option>
+                            <option value="TERCEIRO">Terceiro (17h30-21h)</option>
+                        </select>
+                    </div>
+    
+                    <!-- NOVOS CAMPOS EXCLUSIVOS PARA RECEPÇÃO -->
+                    <div id="container-horarios-recepcao" class="hidden grid grid-cols-2 gap-4 p-4 bg-blue-50 rounded-2xl border border-blue-100 animate-in fade-in slide-in-from-top-2">
+                        <div class="space-y-2">
+                            <label class="text-[10px] font-black text-blue-600 uppercase">Hora Inicial</label>
+                            <select id="escala-hora-inicial" class="w-full p-2.5 bg-white rounded-lg border border-blue-200 text-xs font-bold outline-none"></select>
+                        </div>
+                        <div class="space-y-2">
+                            <label class="text-[10px] font-black text-blue-600 uppercase">Hora Final</label>
+                            <select id="escala-hora-final" class="w-full p-2.5 bg-white rounded-lg border border-blue-200 text-xs font-bold outline-none"></select>
+                        </div>
+                    </div>
+    
+                    <button type="submit" class="w-full bg-slate-800 text-white py-4 rounded-xl font-bold hover:bg-slate-900 transition-all shadow-lg">Confirmar e Salvar</button>
+                </form>
+            </div>
+        </div>
+    
+        <script>
+            // Inicialização de ícones
+            lucide.createIcons();
+    
+            // Lógica de Modais
+            window.openModal = (id) => document.getElementById(id).classList.remove('hidden');
+            window.closeModal = (id) => {
+                document.getElementById(id).classList.add('hidden');
+                if(id === 'modal-escala') resetRecepcaoFields();
+            };
+    
+            window.openEscalaModal = () => { 
+                document.getElementById('form-escala').reset(); 
+                document.getElementById('escala-id-original').value = ''; 
+                document.getElementById('escala-modal-title').innerText = 'Agendar Escala';
+                resetRecepcaoFields();
+                openModal('modal-escala'); 
+            };
+    
+            // --- LÓGICA DE HORÁRIOS PARA RECEPÇÃO ---
+            const setorSelect = document.getElementById('escala-setor');
+            const turnoSelect = document.getElementById('escala-turno');
+            const containerHorarios = document.getElementById('container-horarios-recepcao');
+    
+            function popularDropdownHorarios(turno) {
+                const inicioSel = document.getElementById('escala-hora-inicial');
+                const fimSel = document.getElementById('escala-hora-final');
+                
+                let startHour, endHour;
+    
+                if (turno === 'PRIMEIRO') { startHour = 7; endHour = 13; }
+                else if (turno === 'SEGUNDO') { startHour = 12; endHour = 18; }
+                else if (turno === 'SEGUNDO PARC') { startHour = 12; endHour = 18; }    
+                else if (turno === 'TERCEIRO') { startHour = 17; endHour = 21; }
+                else { startHour = 7; endHour = 21; }
+    
+                let options = '<option value="">Selecione</option>';
+                for (let h = startHour; h <= endHour; h++) {
+                    for (let m = 0; h === endHour ? m === 0 : m < 60; m += 30) {
+                        const time = `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`;
+                        options += `<option value="${time}">${time}</option>`;
+                    }
+                }
+                inicioSel.innerHTML = options;
+                fimSel.innerHTML = options;
+            }
+    
+            function handleRecepcaoDisplay() {
+                if (setorSelect.value === 'RECEPÇÃO') {
+                    containerHorarios.classList.remove('hidden');
+                    popularDropdownHorarios(turnoSelect.value);
+                } else {
+                    containerHorarios.classList.add('hidden');
+                }
+            }
+    
+            function resetRecepcaoFields() {
+                containerHorarios.classList.add('hidden');
+                document.getElementById('escala-hora-inicial').innerHTML = '';
+                document.getElementById('escala-hora-final').innerHTML = '';
+            }
+    
+            setorSelect.addEventListener('change', handleRecepcaoDisplay);
+            turnoSelect.addEventListener('change', () => {
+                if (setorSelect.value === 'RECEPÇÃO') popularDropdownHorarios(turnoSelect.value);
+            });
+
+    
+            document.getElementById('form-escala').onsubmit = (e) => {
+                e.preventDefault();
+                // Lógica de salvamento aqui capturando os novos campos se visíveis
+                const dados = {
+                    setor: setorSelect.value,
+                    hora_inicial: document.getElementById('escala-hora-inicial').value,
+                    hora_final: document.getElementById('escala-hora-final').value
+                };
+                console.log("Dados salvos:", dados);
+                closeModal('modal-escala');
+            };
+        </script>
+    
+    <div id="loading" class="fixed inset-0 z-[100] bg-white/80 backdrop-blur-sm hidden flex flex-col items-center justify-center gap-4">
+        <div class="loading-spinner"></div>
+        <p class="text-slate-600 font-medium">Sincronizando...</p>
+    </div>
+
+    <script>
+        const API_URL = "https://script.google.com/macros/s/AKfycbydJsVPa1rLUYG9jU9ncLjIbSBCrE5iqymf7wC28J0SomsTJavLBC6cUSjaixfzl7j1JQ/exec";
+        const CLOUD_NAME = "dwlrxb6a0";
+        const UPLOAD_PRESET = "ml_default";
+        
+        let oficiantes = [];
+        let escala = [];
+        let calendar;
+
+        window.onload = () => {
+            lucide.createIcons();
+            initCalendar();
+            fetchData();
+            setupListeners();
+            switchTab('calendar');
+        };
+
+        function setupListeners() {
+            ['filter-setor', 'filter-turno', 'filter-oficiante'].forEach(id => {
+                document.getElementById(id).addEventListener('change', applyFilters);
+            });
+        }
+
+        /**
+         * Adicione este input na sua área de Gestão de Escala (HTML):
+         * <input type="month" id="gestao-month-filter" onchange="renderGestaoEscala()" class="p-2 border rounded-xl text-xs">
+         */
+        
+        // Função atualizada para renderizar a Gestão de Escala com filtro de mês
+        function renderGestaoEscala() {
+            const container = document.getElementById('gestao-escala-lista');
+            const monthFilter = document.getElementById('gestao-month-filter')?.value; // Ex: "2024-05"
+             //gestao escala 
+            const filtroMes = document.getElementById("gestao-month-filter").value;
+            const filtroOficiante = document.getElementById("gestao-oficiante-filter").value;
+            const filtroTurno = document.getElementById("gestao-turno-filter").value;
+            
+            let dadosFiltrados = escala;
+            
+            if (!container) return;
+            container.innerHTML = '';
+           
+            
+            //filtro no mes
+            if (filtroMes) {
+
+                dadosFiltrados = dadosFiltrados.filter(e => 
+                    e.data.startsWith(filtroMes)
+                );
+            
+            }
+            
+            //filtro oficiante
+            if (filtroOficiante) {
+
+                dadosFiltrados = dadosFiltrados.filter(e =>
+                    String(e.id_oficiante) === String(filtroOficiante)
+                );
+            
+            }
+            
+            //filtro turno
+            if (filtroTurno) {
+
+                dadosFiltrados = dadosFiltrados.filter(e =>
+                    e.turno === filtroTurno
+                );
+            
+            }
+            
+            dadosFiltrados.sort((a, b) => new Date(b.data) - new Date(a.data));
+
+            if (dadosFiltrados.length === 0) {
+                container.innerHTML = '<div class="p-4 text-center opacity-50 text-xs">Nenhum registro encontrado para este período.</div>';
+                return;
+            }
+            
+           dadosFiltrados.forEach(item => {
+                const div = document.createElement('div');
+                div.className = 'flex items-center justify-between p-3 bg-white border border-slate-100 rounded-xl hover:shadow-sm transition-all';
+                
+                // Formatar data para exibição
+                const dataLimpa = item.data.split("T")[0];
+                const [ano, mes, dia] = dataLimpa.split("-");
+                const dataFormatada = `${dia}/${mes}/${ano}`;
+                
+                div.innerHTML = `
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center text-[10px] font-bold">
+                            ${item.nome_oficiante.substring(0, 2).toUpperCase()}
+                        </div>
+                        <div>
+                            <div class="text-xs font-bold">${item.nome_oficiante}</div>
+                            <div class="text-[10px] opacity-60 uppercase">${dataFormatada} • ${item.turno} • ${item.setor}</div>
+                        </div>
+                    </div>
+                    <div class="flex gap-2">
+                        <button onclick='editEscalaItem(${JSON.stringify(item)})' class="p-2 hover:bg-slate-100 rounded-lg text-blue-600 transition-colors">
+                            <i data-lucide="pencil" class="w-4 h-4"></i>
+                        </button>
+                        <button onclick="deleteEscalaItem('${item.id_oficiante}', '${item.data}', '${item.turno}')" class="p-2 hover:bg-red-50 rounded-lg text-red-600 transition-colors">
+                            <i data-lucide="trash-2" class="w-4 h-4"></i>
+                        </button>
+                    </div>
+                `;
+                container.appendChild(div);
+            });
+            
+            if (typeof lucide !== 'undefined') lucide.createIcons();
+        }
+
+        
+        
+        /**
+         * PASSO 1: A FUNÇÃO DE FORMATAÇÃO
+         * Coloque esta função logo no início do seu <script> no arquivo principal.
+         * Ela limpa o "1899-12-30" e o fuso horário.
+         */
+        const formatarHora = (valor) => {
+            if (!valor) return "";
+            let str = String(valor).trim();
+            
+            // Se o valor começar com o apóstrofo (forçado na planilha), removemos para exibição
+            if (str.startsWith("'")) {
+                str = str.substring(1);
+            }
+        
+            // Corrige o formato ISO vindo do Sheets (1899-12-30T10:00:00)
+            if (str.includes('T')) {
+                str = str.split('T')[1];
+            }
+            
+            // Busca o padrão HH:mm (ex: 07:00)
+            const match = str.match(/(\d{1,2}):(\d{2})/);
+            if (match) {
+                return `${match[1].padStart(2, '0')}:${match[2]}`;
+            }
+            return str.substring(0, 5);
+        };
+
+        
+        // 2. Função de Edição Atualizada
+        window.editEscalaItem = (item) => { 
+            openEscalaModal();
+            document.getElementById('escala-modal-title').innerText = 'Editar Escala';
+            
+            document.getElementById('escala-id-original').value = item.id_oficiante;
+            document.getElementById('escala-data-original').value = item.data.substring(0, 10);
+            document.getElementById('escala-turno-original').value = item.turno;
+            
+            document.getElementById('escala-oficiante').value = item.id_oficiante;
+            document.getElementById('escala-data').value = item.data.substring(0, 10);
+            document.getElementById('escala-setor').value = item.setor;
+            document.getElementById('escala-turno').value = item.turno;
+        
+            const containerRecepcao = document.getElementById('container-horarios-recepcao');
+            const selectHoraInicial = document.getElementById('escala-hora-inicial');
+            const selectHoraFinal = document.getElementById('escala-hora-final');
+        
+            if (item.setor && item.setor.toUpperCase().includes('RECEPÇÃO')) {
+                containerRecepcao.classList.remove('hidden');
+                // Usando a nova formatação para garantir que o select encontre o valor "07:00"
+                selectHoraInicial.value = formatarHora(item.hora_inicial);
+                selectHoraFinal.value = formatarHora(item.hora_final);
+            } else {
+                containerRecepcao.classList.add('hidden');
+                selectHoraInicial.value = "";
+                selectHoraFinal.value = "";
+            }
+        };
+        
+        function initCalendar() {
+            const calendarEl = document.getElementById('calendar');
+            
+            // Mapeamento de pesos para garantir a ordem correta
+            const pesosTurno = {
+                'PRIMEIRO': 1,
+                'SEGUNDO': 2,
+                'TERCEIRO': 3
+            };
+        
+            // Criar estrutura do Modal de Visualização se não existir
+            if (!document.getElementById('calendar-popup-container')) {
+                const modalHtml = `
+                    <div id="calendar-popup-container" class="fixed inset-0 z-[100] hidden items-center justify-center p-4">
+                        <div id="calendar-popup-overlay" class="absolute inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity duration-300 opacity-0"></div>
+                        <div id="calendar-popup-content" class="relative bg-white rounded-3xl shadow-2xl w-full max-w-sm overflow-hidden transform transition-all duration-300 scale-90 opacity-0 border border-white/20">
+                            <!-- Conteúdo dinâmico será injetado aqui -->
+                        </div>
+                    </div>
+                `;
+                document.body.insertAdjacentHTML('beforeend', modalHtml);
+            }
+
+           
+            calendar = new FullCalendar.Calendar(calendarEl, {
+                initialView: 'dayGridMonth',
+                locale: 'pt-br',
+                height: 'auto',
+                hiddenDays: [0, 1], // 0 = Domingo | 1 = Segunda
+                headerToolbar: { 
+                    left: 'prev,next today', 
+                    center: 'title', 
+                    right: 'dayGridMonth,listWeek' 
+                },
+                buttonText: { today: 'Hoje', month: 'Mês', list: 'Lista' },
+                
+                eventOrder: "ordemTurno",
+        
+                // Evento de clique para abrir o Popup reconstruído
+                eventClick: function(info) {
+                    const ext = info.event.extendedProps;
+                    const oficiante = oficiantes.find(o => String(o.id) === String(ext.id_oficiante)) || {};
+                    const setor = (ext.setor || "").toUpperCase();
+
+                    const horaIni = formatarHoraSimples(ext.hora_inicial || ext.hora_inicio);
+                    const horaFim = formatarHoraSimples(ext.hora_final || ext.hora_fim);
+                    
+                    // Formatação da Data e Dia da Semana
+                    const dataObj = new Date(info.event.start);
+                    const dataFormatada = dataObj.toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' });
+                    const diaSemana = dataObj.toLocaleDateString('pt-BR', { weekday: 'long' }).toUpperCase();
+                    
+                    let colorClass = "bg-slate-100 text-slate-700 border-slate-200";
+                    if (setor.includes("BATISTÉRIO")) colorClass = "bg-blue-50 text-blue-700 border-blue-200";
+                    else if (setor.includes("RECEPÇÃO")) colorClass = "bg-yellow-50 text-yellow-800 border-yellow-200";
+                    else if (setor.includes("SELAMENTO")) colorClass = "bg-pink-100 text-pink-700 border-pink-300";
+
+                   
+        
+                    const container = document.getElementById('calendar-popup-container');
+                    const overlay = document.getElementById('calendar-popup-overlay');
+                    const content = document.getElementById('calendar-popup-content');
+        
+                    // Injetar HTML limpo e de alta resolução no Modal com Data e Dia
+                    content.innerHTML = `
+                        <div class="p-8 ${colorClass.split(' ')[0]}">
+                            <div class="flex flex-col items-center text-center gap-4">
+                                <div class="flex flex-col gap-1 mb-2">
+                                    <span class="text-[10px] font-black uppercase tracking-[0.2em] opacity-50">${diaSemana}</span>
+                                    <span class="text-xs font-bold opacity-80">${dataFormatada}</span>
+                                </div>
+                                
+                                <div class="flex -space-x-4 mb-2">
+                                    <img src="${oficiante.foto1 || 'https://via.placeholder.com/100'}" class="w-24 h-24 rounded-full object-cover border-4 border-white shadow-lg">
+                                    <img src="${oficiante.foto2 || 'https://via.placeholder.com/100'}" class="w-24 h-24 rounded-full object-cover border-4 border-white shadow-lg">
+                                </div>
+                                
+                                <div>
+                                    <h3 class="text-2xl font-black tracking-tight leading-tight text-slate-900">${info.event.title}</h3>
+                                    <p class="text-sm font-medium opacity-75 uppercase mt-1 tracking-widest">${ext.setor}</p>
+                                </div>
+                                
+                                <div class="mt-4 py-2 px-6 rounded-full bg-white/60 backdrop-blur-md border border-white/40 shadow-sm inline-flex items-center gap-2">
+                                    <span class="text-xs font-bold uppercase tracking-tighter opacity-50">Turno</span>
+                                    <span class="text-sm font-black">${ext.turno}</span>
+                                </div>
+
+                                ${(setor === "RECEPÇÃO" && horaIni && horaFim) ? 
+                                    `<p class="text-sm font-bold mt-3">${horaIni} às ${horaFim}</p>` 
+                                : ''}
+                                
+                                
+                            </div>
+                        </div>
+                        <div class="bg-white p-4 border-t flex justify-center">
+                            <button onclick="closeCalendarPopup()" class="px-8 py-3 bg-slate-900 text-white rounded-2xl font-bold text-sm hover:bg-slate-800 transition-colors shadow-lg">
+                                Fechar Visualização
+                            </button>
+                        </div>
+                    `;
+        
+                    // Mostrar com animação
+                    container.classList.remove('hidden');
+                    container.classList.add('flex');
+                    setTimeout(() => {
+                        overlay.classList.replace('opacity-0', 'opacity-100');
+                        content.classList.replace('scale-90', 'scale-100');
+                        content.classList.replace('opacity-0', 'opacity-100');
+                    }, 10);
+                },
+        
+                eventDataTransform: function(eventData) {
+                    eventData.ordemTurno = pesosTurno[String(eventData.turno).toUpperCase()] || 99;
+                    return eventData;
+                },
+        
+                /**
+                 * PASSO 3: APLICAÇÃO NO CARD (eventContent)
+                 * Localize "eventContent: function(arg) {" dentro do "initCalendar"
+                 * e substitua por este bloco abaixo:
+                 */
+                
+                // 2. O bloco eventContent atualizado com a sua lógica de busca da API
+                eventContent: function(arg) {
+                    const ext = arg.event.extendedProps || {};
+                    const setor = (ext.setor || "").toUpperCase();
+                    
+                    // BUSCA DE OFICIANTES (Sua lógica original com proteção extra)
+                    const oficiante = (typeof oficiantes !== 'undefined' && oficiantes.length > 0)
+                        ? oficiantes.find(o => String(o.id) === String(ext.id_oficiante)) || {}
+                        : {};
+                    
+                    let colorClass = "card-default";
+                    if (setor.includes("BATISTÉRIO")) colorClass = "card-batisterio";
+                    else if (setor.includes("RECEPÇÃO")) colorClass = "card-recepcao";
+                    else if (setor.includes("SELAMENTO")) colorClass = "card-selamento";
+                
+                    // Limpeza dos horários usando a função formatarHoraSimples
+                    const hIni = formatarHoraSimples(ext.hora_inicial || ext.hora_inicio);
+                    const hFim = formatarHoraSimples(ext.hora_final || ext.hora_fim);
+                
+                    // HTML do horário específico para Recepção (Com texto preto forçado)
+                    const htmlHorario = (setor === "RECEPÇÃO" && hIni && hFim) 
+                        ? `<div class="text-[9px] font-black mt-0.5 bg-white/70 px-1.5 py-0.5 rounded border border-black/10 w-fit text-black shadow-sm">
+                             ${hIni} - ${hFim}
+                           </div>` 
+                        : '';
+                
+                    // Definição das imagens (Mantendo as fotos maiores que você usava)
+                    const img1 = oficiante.foto1 || 'https://via.placeholder.com/32';
+                    const img2 = oficiante.foto2;
+                
+                    return { html: `
+                        <div class="event-card-custom ${colorClass} rounded-xl p-1.5 overflow-hidden w-full flex flex-col gap-1 border shadow-sm ring-1 ring-black/5 transition-transform hover:scale-[1.02] text-black">
+                            <div class="flex items-center gap-2">
+                                <!-- Efeito de Fotos Sobrepostas (ml-3 na segunda foto) -->
+                                <div class="flex shrink-0">
+                                    <img src="${img1}" class="w-10 h-10 rounded-full object-cover border-2 border-white shadow-sm z-10" onerror="this.src='https://via.placeholder.com/32'">
+                                    ${img2 ? `
+                                        <img src="${img2}" class="w-10 h-10 rounded-full object-cover border-2 border-white shadow-sm -ml-3 z-0" onerror="this.style.display='none'">
+                                    ` : ''}
+                                </div>
+                                
+                                <div class="flex flex-col flex-1 truncate">
+                                    <!-- Título em preto absoluto -->
+                                    <span class="font-bold text-[10px] leading-tight truncate text-black">
+                                        ${arg.event.title || 'Sem Nome'}
+                                    </span>
+                                    ${htmlHorario} 
+                                </div>
+                            </div>
+                            
+                            <!-- Rodapé com cores pretas e sem opacidade reduzida -->
+                            <div class="text-[9px] font-bold text-black truncate uppercase border-t border-black/10 pt-1 flex justify-between items-center mt-1">
+                                <span class="truncate pr-1">${ext.setor || 'N/A'}</span>
+                                <span class="bg-black/10 px-1 py-0.5 rounded text-[8px] whitespace-nowrap text-black">${ext.turno || ''}</span>
+                            </div>
+                        </div>
+                    `};
+                }
+            });
+            calendar.render();
+        
+            // Funções globais para o Popup
+            window.closeCalendarPopup = function() {
+                const container = document.getElementById('calendar-popup-container');
+                const overlay = document.getElementById('calendar-popup-overlay');
+                const content = document.getElementById('calendar-popup-content');
+        
+                overlay.classList.replace('opacity-100', 'opacity-0');
+                content.classList.replace('scale-100', 'scale-90');
+                content.classList.replace('opacity-100', 'opacity-0');
+                
+                setTimeout(() => {
+                    container.classList.replace('flex', 'hidden');
+                }, 300);
+            };
+        
+            document.getElementById('calendar-popup-overlay').addEventListener('click', window.closeCalendarPopup);
+            document.addEventListener('keydown', (e) => { if(e.key === "Escape") window.closeCalendarPopup(); });
+        }
+
+        
+        async function apiCall(payload) {
+            showLoading(true);
+            try {
+                const res = await fetch(API_URL, { method: 'POST', body: JSON.stringify(payload) });
+                return await res.json();
+            } catch (e) { return { status: "error" }; } finally { showLoading(false); }
+        }
+
+        //Preenche filtro oficiantes gestão escala
+        function carregarFiltroOficiantes(oficiantes){
+        
+            const select = document.getElementById("gestao-oficiante-filter");
+        
+            oficiantes.forEach(o => {
+        
+                const op = document.createElement("option");
+                op.value = o.id;
+                op.textContent = o.nome;
+        
+                select.appendChild(op);
+        
+            });
+        
+        } 
+
+       // FUNÇÃO FETCHDATA ATUALIZADA E CORRIGIDA PARA ORDENAR DE VERDADE
+        async function fetchData() {
+            try {
+                // 1. Busca Oficiantes
+                const rO = await apiCall({ action: "listOficiantes" });
+                if (rO.status === "ok") {
+                    // ORDENAÇÃO INFALÍVEL (A-Z)
+                    // .trim() remove espaços antes dos nomes
+                    // .localeCompare com 'pt-BR' e sensitivity 'base' ignora acentos e maiúsculas
+                    oficiantes = rO.data.sort((a, b) => {
+                        const nomeA = (a.nome || "").trim();
+                        const nomeB = (b.nome || "").trim();
+                        return nomeA.localeCompare(nomeB, 'pt-BR', { sensitivity: 'base' });
+                    });
+                    renderOficiantes();
+                    updateOficianteSelects();
+                    carregarFiltroOficiantes(oficiantes);
+                }
+
+                // 2. Busca Escala
+                const rE = await apiCall({ action: "listEscala" });
+                if (rE.status === "ok") {
+                    escala = rE.data;
+                    renderEscalaTable();
+                    applyFilters();
+                }
+            } catch (error) {
+                console.error("Erro ao carregar dados:", error);
+            }
+        }
+
+        function renderOficiantes() {
+            document.getElementById('oficiantes-list').innerHTML = oficiantes.map(o => `
+                <div class="bg-white p-3 rounded-xl border border-slate-100 flex items-center gap-3 hover:bg-slate-50 group">
+                    <div class="flex -space-x-2">
+                        <img src="${o.foto1 || 'https://via.placeholder.com/32'}" class="w-8 h-8 rounded-full object-cover border-2 border-white">
+                        <img src="${o.foto2 || 'https://via.placeholder.com/32'}" class="w-8 h-8 rounded-full object-cover border-2 border-white">
+                    </div>
+                    <div class="flex-1 min-w-0"><p class="text-sm font-bold text-slate-800 truncate">${o.nome}</p></div>
+                    <div class="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <button onclick='editOficiante(${JSON.stringify(o)})' class="p-2 text-blue-500 hover:bg-blue-50 rounded-lg"><i data-lucide="edit" class="w-4 h-4"></i></button>
+                        <button onclick="deleteOficiante('${o.id}')" class="p-2 text-slate-300 hover:text-red-500"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
+                    </div>
+                </div>
+            `).join('');
+            lucide.createIcons();
+        }
+
+        
+        function renderEscalaTable() {
+            const tbody = document.getElementById('escala-table-body');
+            tbody.innerHTML = [...escala].sort((a,b) => a.data.localeCompare(b.data)).map(e => {
+                const info = formatarDataLimpa(e.data);
+                return `
+                    <tr class="hover:bg-slate-50 group">
+                        <td class="p-4"><div class="text-sm font-bold">${info.dataFormatada}</div><div class="text-[10px] text-slate-400 uppercase">${info.diaSemana}</div></td>
+                        <td class="p-4 text-sm font-medium text-slate-600">${e.nome_oficiante}</td>
+                        <td class="p-4"><span class="px-2 py-1 bg-slate-100 text-[9px] font-bold rounded uppercase">${e.setor}</span><div class="text-[10px] mt-1 font-semibold text-blue-600">${e.turno}</div></td>
+                        <td class="p-4 text-right">
+                            <button onclick='editEscalaItem(${JSON.stringify(e)})' class="p-2 text-blue-500 hover:bg-blue-50 rounded-lg"><i data-lucide="edit-3" class="w-4 h-4"></i></button>
+                            <button onclick="deleteEscalaItem('${e.id_oficiante}', '${e.data.substring(0,10)}', '${e.turno}')" class="p-2 text-red-400 hover:bg-red-50 rounded-lg"><i data-lucide="trash" class="w-4 h-4"></i></button>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+            lucide.createIcons();
+        }
+
+        function formatarDataLimpa(dataStr) {
+            if (!dataStr) return { dataFormatada: "---", diaSemana: "---" };
+            const p = dataStr.substring(0, 10).split('-');
+            const d = new Date(parseInt(p[0]), parseInt(p[1]) - 1, parseInt(p[2]), 12, 0, 0);
+            const dias = ["Domingo", "Segunda", "Terça", "Quarta", "Quinta", "Sexta", "Sábado"];
+            return { dataFormatada: `${p[2]}/${p[1]}/${p[0]}`, diaSemana: dias[d.getDay()] };
+        }
+
+        /**
+         * IMPORTANTE: Substitua sua função applyFilters por esta abaixo.
+         * É aqui que a mágica da ordenação acontece quando você filtra os dados.
+         */
+        function applyFilters() {
+            const fS = document.getElementById('filter-setor').value;
+            const fT = document.getElementById('filter-turno').value;
+            const fO = document.getElementById('filter-oficiante').value;
+            
+            if (!calendar) return;
+            calendar.removeAllEvents();
+        
+            const pesosTurno = { 'PRIMEIRO': 1, 'SEGUNDO': 2, 'SEGUNDO PARC': 3 , 'TERCEIRO': 4 };
+        
+            escala.filter(item => 
+                (!fS || item.setor === fS) && 
+                (!fT || item.turno === fT) && 
+                (!fO || String(item.id_oficiante) === String(fO))
+            ).forEach(e => {
+                calendar.addEvent({ 
+                    title: e.nome_oficiante, 
+                    start: e.data.substring(0, 10), 
+                    allDay: true, 
+                    // INJEÇÃO DA ORDEM: Sem isso no primeiro nível, o calendar não ordena.
+                    ordemTurno: pesosTurno[String(e.turno).toUpperCase()] || 99,
+                    extendedProps: { ...e } 
+                });
+            });
+        }
+
+        function getFilteredData() {
+            const fS = document.getElementById('filter-setor').value;
+            const fT = document.getElementById('filter-turno').value;
+            const fO = document.getElementById('filter-oficiante').value;
+            
+            // Obtém período visível no calendário
+            const view = calendar.view;
+            const start = view.activeStart;
+            const end = view.activeEnd;
+
+            return escala.filter(item => {
+                const itemDate = new Date(item.data.substring(0, 10) + "T12:00:00");
+                const matchesFilters = (!fS || item.setor === fS) && 
+                                       (!fT || item.turno === fT) && 
+                                       (!fO || String(item.id_oficiante) === String(fO));
+                const matchesDate = itemDate >= start && itemDate < end;
+                return matchesFilters && matchesDate;
+            });
+        }
+
+        // --- RELATÓRIOS PDF ---
+        // --- RELATÓRIOS PDF ATUALIZADOS ---
+
+        // Objeto de apoio para ordenação de turnos
+        const turnosOrder = { "PRIMEIRO": 1, "SEGUNDO": 2, "SEGUNDO PARC": 3, "TERCEIRO": 4 };
+
+         // hora simples
+            function formatarHoraSimples(valor) {
+            
+                if (!valor) return "";
+            
+                try {
+            
+                    if (valor instanceof Date) {
+                        return valor.toLocaleTimeString('pt-BR', {
+                            hour: '2-digit',
+                            minute: '2-digit',
+                            hour12: false
+                        });
+                    }
+            
+                    let str = String(valor).trim();
+            
+                    if (str.includes("T")) {
+                        const date = new Date(str);
+                        if (!isNaN(date.getTime())) {
+                            return date.toLocaleTimeString('pt-BR', {
+                                hour: '2-digit',
+                                minute: '2-digit',
+                                hour12: false
+                            });
+                        }
+                    }
+            
+                    const match = str.match(/(\d{1,2}):(\d{2})/);
+                    if (match) {
+                        return `${match[1].padStart(2,'0')}:${match[2]}`;
+                    }
+            
+                    return "";
+            
+                } catch (e) {
+                    return "";
+                }
+            };
+        
+        /**
+         * Função auxiliar robusta para evitar "Invalid Data".
+         * Ela trata a string de data diretamente sem depender do fuso horário do sistema.
+         */
+        function formatarDataComDia(dataInput) {
+
+            const diasAbrev = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
+        
+            if (!dataInput) return { dataFormatada: "---", diaSemana: "" };
+        
+            try {
+        
+                let dataObj;
+        
+                if (dataInput instanceof Date) {
+                    dataObj = dataInput;
+                } 
+                else if (typeof dataInput === 'string' && dataInput.includes('-')) {
+                    const partes = dataInput.split('T')[0].split('-');
+                    dataObj = new Date(partes[0], partes[1] - 1, partes[2]);
+                } 
+                else {
+                    dataObj = new Date(dataInput);
+                }
+        
+                if (isNaN(dataObj.getTime())) {
+                    return { 
+                        dataFormatada: String(dataInput).substring(0,10), 
+                        diaSemana: "" 
+                    };
+                }
+        
+                const dataFormatada = dataObj.toLocaleDateString('pt-BR');
+                const diaSemana = diasAbrev[dataObj.getDay()];
+        
+                return { dataFormatada, diaSemana };
+        
+            } catch (e) {
+                return { dataFormatada: "Erro", diaSemana: "" };
+            }
+        }
+
+        
+        window.relatorioCalendarioLista = function() {
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+            
+            // 1. Obter dados e ordenar por Data e depois por Turno
+            const rawData = typeof getFilteredData === 'function' ? getFilteredData() : [];
+            const dataOrdenada = [...rawData].sort((a, b) => {
+                const dataA = (a.data || "").toString();
+                const dataB = (b.data || "").toString();
+                
+                if (dataA !== dataB) return dataA.localeCompare(dataB);
+                
+                const pesoA = turnosOrder[(a.turno || "").toUpperCase()] || 99;
+                const pesoB = turnosOrder[(b.turno || "").toUpperCase()] || 99;
+                return pesoA - pesoB;
+            });
+            
+            doc.setFontSize(16); doc.text("Escala: Calendário em Lista", 14, 15);
+            doc.setFontSize(10); 
+            const subtitulo = typeof calendar !== 'undefined' ? `Filtro: ${calendar.view.title}` : "";
+            doc.text(subtitulo, 14, 22);
+            
+            const rows = dataOrdenada.map(e => {
+                const info = formatarDataComDia(e.data);
+                const diaReduzido = info.diaSemana.split('-')[0]; // Pega "SEGUNDA" de "SEGUNDA-FEIRA"
+                return [
+                    info.diaSemana ? `${info.dataFormatada} (${diaReduzido})` : info.dataFormatada,
+                    e.turno || "",
+                    e.setor || "",
+                    e.nome_oficiante || ""
+                ];
+            });
+            
+            doc.autoTable({ 
+                head: [['Data', 'Turno', 'Setor', 'Oficiante']], 
+                body: rows, 
+                startY: 28,
+                theme: 'striped',
+                headStyles: { fillColor: [40, 40, 40] }
+            });
+            
+            doc.save(`escala_lista_${new Date().getTime()}.pdf`);
+        };
+        
+        window.relatorioCalendarioAgrupadoData = function() {
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+            
+            const rawData = typeof getFilteredData === 'function' ? getFilteredData() : [];
+            // Ordena antes de agrupar
+            const dataOrdenada = [...rawData].sort((a, b) => {
+                const dataA = (a.data || "").toString();
+                const dataB = (b.data || "").toString();
+                if (dataA !== dataB) return dataA.localeCompare(dataB);
+                return (turnosOrder[a.turno?.toUpperCase()] || 99) - (turnosOrder[b.turno?.toUpperCase()] || 99);
+            });
+            
+            const grouped = {};
+            dataOrdenada.forEach(e => { 
+                if(!e.data) return;
+                const dKey = e.data.toString().substring(0, 10);
+                if(!grouped[dKey]) grouped[dKey] = []; 
+                grouped[dKey].push(e); 
+            });
+        
+            doc.setFontSize(16); doc.text("Escala Agrupada por Data", 14, 15);
+            doc.setFontSize(10); 
+            const periodo = typeof calendar !== 'undefined' ? `Período: ${calendar.view.title}` : "";
+            doc.text(periodo, 14, 22);
+            let y = 30;
+        
+            Object.keys(grouped).sort().forEach(dateKey => {
+                const info = formatarDataComDia(dateKey);
+                
+                if(y > 240) { doc.addPage(); y = 20; }
+        
+                doc.setFontSize(11); doc.setTextColor(0);
+                doc.setFont(undefined, 'bold');
+                doc.text(`${info.dataFormatada} - ${info.diaSemana}`, 14, y);
+                y += 2;
+                
+                const rows = grouped[dateKey].map(e => [e.nome_oficiante || "", e.turno || "", e.setor || ""]);
+                doc.autoTable({ 
+                    head: [['Oficiante', 'Turno', 'Setor']], 
+                    body: rows, 
+                    startY: y + 2, 
+                    margin: { left: 14 },
+                    theme: 'grid',
+                    headStyles: { fillColor: [60, 60, 60] }
+                });
+                
+                y = doc.lastAutoTable.finalY + 12;
+            });
+            doc.save("escala_agrupada_data.pdf");
+        };
+        
+        window.relatorioEscalaPorOficiante = function() {
+            const { jsPDF } = window.jspdf;
+            
+            const doc = new jsPDF();
+            const rawData = typeof getFilteredData === 'function' ? getFilteredData() : [];
+           // Agrupa por ID e pega também o nome
+            const oficiantesMap = {};
+            
+            rawData.forEach(e => {
+                if (!e.id_oficiante) return;
+                if (!oficiantesMap[e.id_oficiante]) {
+                    oficiantesMap[e.id_oficiante] = e.nome_oficiante || "Oficiante s/ nome";
+                }
+            });
+            
+            // Converte para array e ordena alfabeticamente pelo nome
+            const oficiantesOrdenados = Object.entries(oficiantesMap)
+                .sort((a, b) => a[1].localeCompare(b[1], 'pt-BR', { sensitivity: 'base' }));
+        
+            doc.setFontSize(16); doc.text("Escala por Oficiante", 14, 15);
+            doc.setFontSize(10);
+
+            
+            const periodo = typeof calendar !== 'undefined' ? `Período: ${calendar.view.title}` : "";
+            doc.text(periodo, 14, 22);
+            let y = 30;
+        
+            oficiantesOrdenados.forEach(([id, nome]) => {
+                if (!id) return;
+                const itens = rawData.filter(e => 
+                        String(e.id_oficiante).trim() === String(id).trim()
+                    ).sort((a,b) => {
+                    const dataA = (a.data || "").toString();
+                    const dataB = (b.data || "").toString();
+                    if (dataA !== dataB) return dataA.localeCompare(dataB);
+                    return (turnosOrder[a.turno?.toUpperCase()] || 99) - (turnosOrder[b.turno?.toUpperCase()] || 99);
+                });
+                
+                if (itens.length === 0) return;
+                //const nome = itens[0].nome_oficiante || "Oficiante s/ nome";
+        
+                if(y > 230) { doc.addPage(); y = 20; }
+        
+                doc.setDrawColor(200); doc.setFillColor(245, 245, 245);
+                doc.rect(14, y, 182, 8, 'F');
+                doc.setFontSize(12); doc.setTextColor(0); doc.setFont(undefined, 'bold');
+                doc.text(nome, 16, y + 6);
+                y += 10;
+        
+                const rows = itens.map(e => {
+                    const info = formatarDataComDia(e.data);
+                    const diaReduzido = info.diaSemana.split('-')[0];
+                    return [
+                        info.diaSemana ? `${info.dataFormatada} (${diaReduzido})` : info.dataFormatada, 
+                        e.turno || "", 
+                        e.setor || ""
+                    ];
+                });
+        
+                doc.autoTable({ 
+                    head: [['Data', 'Turno', 'Setor']], 
+                    body: rows, 
+                    startY: y, 
+                    margin: { left: 14 }, 
+                    theme: 'striped' 
+                });
+                
+                y = doc.lastAutoTable.finalY + 12;
+            });
+            doc.save("escala_por_oficiante.pdf");
+        };
+        
+        window.relatorioEscalaSetores = function() {
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF('landscape'); // Paisagem para caber todas colunas
+             // 🔹 Data e hora de geração
+                const agora = new Date();
+                const dataGeracao = agora.toLocaleDateString('pt-BR') + " às " +
+                                    agora.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+                
+                // Pega largura da página
+                const pageWidth = doc.internal.pageSize.getWidth();
+                
+                doc.setFontSize(9);
+                doc.text(
+                    `Gerado em: ${dataGeracao}`,
+                    pageWidth - 14,
+                    10,
+                    { align: 'right' }
+                );
+            
+            
+        
+            const rawData = typeof getFilteredData === 'function' ? getFilteredData() : [];
+        
+            if (!rawData.length) {
+                alert("Nenhum dado encontrado.");
+                return;
+            }
+        
+            // Ordena por data
+            rawData.sort((a,b)=> (a.data || "").localeCompare(b.data || ""));
+        
+            // Agrupar por data
+            const grouped = {};
+            rawData.forEach(e => {
+                const d = e.data.substring(0,10);
+                if (!grouped[d]) grouped[d] = [];
+                grouped[d].push(e);
+            });
+        
+            doc.setFontSize(15);
+            doc.text("Escala Geral Setores", 14, 10);
+        
+            doc.setFontSize(9);
+            doc.text(`Período: ${calendar.view.title}`, 14, 16);
+
+            
+            
+            //doc.text(`Gerado em: ${dataGeracao}`, 14, 21);
+        
+            const rows = [];
+        
+            Object.keys(grouped).sort().forEach(dateKey => {
+        
+                const info = formatarDataComDia(dateKey);
+        
+                const linha = {
+                    data: `${info.dataFormatada} ${info.diaSemana}`,
+                    BAT1: [], BAT2: [], BAT3: [],
+                    REC1: [], REC2: [],
+                    SEL1: [], SEL2: [], SEL3: []
+                };
+        
+                grouped[dateKey].forEach(e => {
+        
+                    const turno = (e.turno || "").toUpperCase().trim();
+
+                    const turnoNum =
+                        turno === "PRIMEIRO" ? "1" :
+                        (turno === "SEGUNDO" || turno === "SEGUNDO PARC") ? "2" :
+                        turno === "TERCEIRO" ? "3" :
+                        "";
+        
+                    if (e.setor === "BATISTÉRIO") {
+                        linha["BAT"+turnoNum].push(e.nome_oficiante);
+                    }
+        
+                    if (e.setor === "RECEPÇÃO" && turnoNum !== "3") {
+
+                        if (linha["REC"+turnoNum]) {
+                    
+                            const horaIni = formatarHoraSimples(e.hora_inicial || e.hora_inicio);
+                            const horaFim = formatarHoraSimples(e.hora_final || e.hora_fim);
+                    
+                            const nomeFormatado = (horaIni && horaFim)
+                                ? `${e.nome_oficiante} (${horaIni} às ${horaFim})`
+                                : e.nome_oficiante;
+                    
+                            linha["REC"+turnoNum].push(nomeFormatado);
+                        }
+                    }
+                    
+                    if (e.setor === "SELAMENTO") {
+                        linha["SEL"+turnoNum].push(e.nome_oficiante);
+                    }
+        
+                });
+        
+                rows.push([
+                    linha.data,
+                    linha.BAT1.join("\n"),
+                    linha.BAT2.join("\n"),
+                    linha.BAT3.join("\n"),
+                    linha.REC1.join("\n"),
+                    linha.REC2.join("\n"),
+                    linha.SEL1.join("\n"),
+                    linha.SEL2.join("\n"),
+                    linha.SEL3.join("\n")
+                ]);
+            });
+        
+            doc.autoTable({
+                startY: 20,
+                head: [[
+                    "Data",
+                    "Bat Turno 1", "Bat Turno 2", "Bat Turno 3",
+                    "Rec Turno 1", "Rec Turno 2",
+                    "Sel Turno 1", "Sel Turno 2", "Sel Turno 3"
+                ]],
+                body: rows,
+                styles: {
+                    fontSize: 7,
+                    cellPadding: 0.6,      // 🔥 menos espaço interno
+                    lineWidth: 0.4,
+                    lineColor: [0,0,0],
+                    valign: 'middle',
+                    minCellHeight: 4       // 🔥 reduz altura mínima da linha
+                },
+                headStyles: {
+                    fillColor: [40,40,40],
+                    fontSize: 8,
+                    textColor: 255,
+                    lineWidth: 0.6           // 🔥 borda do cabeçalho mais forte
+                },
+                columnStyles: {
+                    0: { 
+                        cellWidth: 26,
+                        fontStyle: 'bold'    // 🔥 DATA EM NEGRITO
+                    }
+                },
+                didParseCell: function (data) {
+
+                 // 🔴 Se for sábado, deixar data vermelha e negrito
+                if (data.section === 'body' && data.column.index === 0) {
+                
+                    const texto = data.cell.raw || "";
+                
+                    if (texto.toUpperCase().includes("SÁB")) {
+                        data.cell.styles.textColor = [200, 0, 0]; // vermelho
+                        data.cell.styles.fontStyle = "bold";
+                    }
+                
+                }   
+
+                    
+                const col = data.column.index;
+            
+                // 🔥 DATA maior
+                if (data.section === 'body' && col === 0) {
+                    data.cell.styles.fontSize = 9;
+                    data.cell.styles.fontStyle = 'bold';
+                }
+            
+                // Bordas
+                data.cell.styles.lineWidth = 0.4;
+            
+                if (data.section !== 'body') return;
+            
+                // 🔵 BATISTÉRIO
+                if (col >= 1 && col <= 3) {
+                    data.cell.styles.fillColor = [220, 235, 255];
+                }
+            
+                // 🟡 RECEPÇÃO
+                if (col >= 4 && col <= 5) {
+                    data.cell.styles.fillColor = [255, 248, 200];
+                }
+            
+                // 🌸 SELAMENTO
+                if (col >= 6 && col <= 8) {
+                    data.cell.styles.fillColor = [255, 220, 235];
+                }
+            },
+                theme: 'grid'
+            });
+        
+            doc.save("escala_geral_setor.pdf");
+        };
+
+
+        window.relatorioIndividualPorSetor = function() {
+
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF('landscape');
+        
+            const rawData = typeof getFilteredData === 'function' ? getFilteredData() : [];
+        
+            if (!rawData.length) {
+                alert("Nenhum dado encontrado.");
+                return;
+            }
+        
+            // Descobrir qual setor está filtrado
+            const setorSelecionado = rawData[0]?.setor;
+        
+            if (!setorSelecionado) {
+                alert("Selecione um setor para gerar este relatório.");
+                return;
+            }
+        
+            // Ordena por data
+            rawData.sort((a,b)=> (a.data || "").localeCompare(b.data || ""));
+        
+            // Agrupar por data
+            const grouped = {};
+            rawData.forEach(e => {
+                const d = e.data.substring(0,10);
+                if (!grouped[d]) grouped[d] = [];
+                grouped[d].push(e);
+            });
+        
+            doc.setFontSize(16);
+            doc.text(`Relatório Individual - ${setorSelecionado}`, 14, 15);
+        
+            doc.setFontSize(10);
+            doc.text(`Período: ${calendar.view.title}`, 14, 22);
+        
+            const rows = [];
+        
+            Object.keys(grouped).sort().forEach(dateKey => {
+        
+                const info = formatarDataComDia(dateKey);
+        
+                const linha = {
+                    data: `${info.dataFormatada} ${info.diaSemana}`,
+                    T1: [],
+                    T2: [],
+                    T3: []
+                };
+        
+                grouped[dateKey].forEach(e => {
+        
+                    const turnoNum =
+                        e.turno === "PRIMEIRO" ? "1" :
+                        e.turno === "SEGUNDO" ? "2" : "3";
+        
+                    let nomeFormatado = e.nome_oficiante;
+
+                    if (setorSelecionado === "RECEPÇÃO") {
+                    
+                        const horaIni = formatarHoraSimples(e.hora_inicial || e.hora_inicio);
+                        const horaFim = formatarHoraSimples(e.hora_final || e.hora_fim);
+                    
+                        if (horaIni && horaFim) {
+                            nomeFormatado = `${e.nome_oficiante} (${horaIni} às ${horaFim})`;
+                        }
+                    }
+                    
+                    if (linha["T"+turnoNum]) {
+                        linha["T"+turnoNum].push(nomeFormatado);
+                    }
+                });
+        
+                rows.push(linha);
+            });
+        
+            // DEFINIR COLUNAS DINÂMICAS
+            let head = [];
+            let body = [];
+        
+            if (setorSelecionado === "BATISTÉRIO") {
+        
+                head = [["Data", "Turno 1", "Turno 2", "Turno 3"]];
+        
+                body = rows.map(l => [
+                    l.data,
+                    l.T1.join("\n"),
+                    l.T2.join("\n"),
+                    l.T3.join("\n")
+                ]);
+        
+            } else if (setorSelecionado === "RECEPÇÃO") {
+        
+                head = [["Data", "Turno 1", "Turno 2"]];
+        
+                body = rows.map(l => [
+                    l.data,
+                    l.T1.join("\n"),
+                    l.T2.join("\n")
+                ]);
+        
+            } else if (setorSelecionado === "SELAMENTO") {
+        
+                head = [["Data", "Turno 1", "Turno 2", "Turno 3"]];
+        
+                body = rows.map(l => [
+                    l.data,
+                    l.T1.join("\n"),
+                    l.T2.join("\n"),
+                    l.T3.join("\n")
+                ]);
+            }
+        
+            doc.autoTable({
+            startY: 28,
+            head: head,
+            body: body,
+            styles: {
+                fontSize: 8,
+                cellPadding: 1.5,
+                valign: 'middle'
+            },
+            headStyles: {
+                fillColor: [40,40,40],
+                textColor: 255
+            },
+            columnStyles: {
+                0: { cellWidth: 35 }
+            },
+            didParseCell: function (data) {
+        
+                // Ignora cabeçalho
+                if (data.section !== 'body') return;
+        
+                const col = data.column.index;
+        
+                // Não pintar coluna Data
+                if (col === 0) return;
+        
+                // 🔵 BATISTÉRIO
+                if (setorSelecionado === "BATISTÉRIO") {
+                    data.cell.styles.fillColor = [220, 235, 255];
+                }
+        
+                // 🟡 RECEPÇÃO
+                if (setorSelecionado === "RECEPÇÃO") {
+                    data.cell.styles.fillColor = [255, 248, 200];
+                }
+        
+                // 🌸 SELAMENTO
+                if (setorSelecionado === "SELAMENTO") {
+                    data.cell.styles.fillColor = [255, 220, 235];
+                }
+            },
+            theme: 'grid'
+        });
+        
+            doc.save(`relatorio_${setorSelecionado.toLowerCase()}.pdf`);
+        };
+        
+        // --- ACTIONS ---
+
+        async function uploadFile(file) {
+            if(!file) return "";
+            const fd = new FormData();
+            fd.append("file", file); fd.append("upload_preset", UPLOAD_PRESET);
+            const res = await fetch(`https://api.cloudinary.com/v1_1/${CLOUD_NAME}/image/upload`, { method: "POST", body: fd });
+            const data = await res.json();
+            return data.secure_url || "";
+        }
+
+        window.openOficianteModal = () => {
+            document.getElementById('form-oficiante').reset();
+            document.getElementById('oficiante-id').value = '';
+            document.getElementById('oficiante-modal-title').innerText = 'Novo Oficiante';
+            document.getElementById('prev-foto1').classList.add('hidden');
+            document.getElementById('prev-foto2').classList.add('hidden');
+            openModal('modal-oficiante');
+        };
+
+        window.editOficiante = (o) => {
+            document.getElementById('oficiante-id').value = o.id;
+            document.getElementById('oficiante-nome').value = o.nome;
+            document.getElementById('oficiante-modal-title').innerText = 'Editar Oficiante';
+            if(o.foto1) document.getElementById('prev-foto1').classList.remove('hidden');
+            if(o.foto2) document.getElementById('prev-foto2').classList.remove('hidden');
+            openModal('modal-oficiante');
+        };
+
+        document.getElementById('form-oficiante').onsubmit = async (e) => {
+            e.preventDefault();
+            const id = document.getElementById('oficiante-id').value;
+            const f1File = document.getElementById('oficiante-foto1').files[0];
+            const f2File = document.getElementById('oficiante-foto2').files[0];
+            
+            let f1 = f1File ? await uploadFile(f1File) : "";
+            let f2 = f2File ? await uploadFile(f2File) : "";
+
+            // Se for edição e não subiu nova foto, mantém a antiga (o backend precisa tratar isso ou enviamos a URL atual)
+            // Para simplicidade, assumimos que se o campo estiver vazio na edição o backend mantém.
+            
+            const payload = { 
+                action: id ? "updateOficiante" : "addOficiante", 
+                id, 
+                nome: document.getElementById('oficiante-nome').value, 
+                foto1: f1, 
+                foto2: f2 
+            };
+            
+            const res = await apiCall(payload);
+            if (res.status === "ok") { closeModal('modal-oficiante'); fetchData(); e.target.reset(); }
+        };
+
+        document.getElementById('form-escala').onsubmit = async (e) => {
+            e.preventDefault();
+            const ofi = document.getElementById('escala-oficiante');
+            const idOrig = String(document.getElementById('escala-id-original').value || "").trim()
+            
+            const payload = {
+                action: idOrig ? "updateEscala" : "addEscala",
+                data: document.getElementById('escala-data').value,
+                id_oficiante: ofi.value,
+                nome_oficiante: ofi.options[ofi.selectedIndex].text,
+                setor: document.getElementById('escala-setor').value,
+                turno: document.getElementById('escala-turno').value,
+                id_original: idOrig,
+                data_original: document.getElementById('escala-data-original').value,
+                turno_original: document.getElementById('escala-turno-original').value,
+                hora_inicial: document.getElementById('escala-hora-inicial').value,
+                hora_final: document.getElementById('escala-hora-final').value
+            };
+            
+            const res = await apiCall(payload);
+            if (res.status === "ok") { closeModal('modal-escala'); fetchData(); }
+        };
+
+        window.deleteOficiante = async (id) => {
+            if(confirm("Deseja realmente excluir este oficiante? Isso não removerá escalas passadas, mas impedirá novas.")) {
+                const res = await apiCall({ action: "deleteOficiante", id });
+                if(res.status === "ok") fetchData();
+            }
+        };
+
+        window.deleteEscalaItem = async (id, data, turno) => {
+            if(confirm("Remover este item da escala?")) {
+                const res = await apiCall({ action: "deleteEscala", id_oficiante: id, data, turno });
+                if(res.status === "ok") fetchData();
+                renderGestaoEscala();
+                renderEscalaTable();
+                refreshCalendar();
+            }
+        };
+
+        function updateOficianteSelects() {
+            const options = '<option value="">Selecione...</option>' + oficiantes.map(o => `<option value="${o.id}">${o.nome}</option>`).join('');
+            document.getElementById('escala-oficiante').innerHTML = options;
+            document.getElementById('filter-oficiante').innerHTML = '<option value="">Todos Oficiantes</option>' + oficiantes.map(o => `<option value="${o.id}">${o.nome}</option>`).join('');
+        }
+
+        window.switchTab = (tab) => {
+            document.querySelectorAll('section').forEach(s => s.classList.add('hidden'));
+            document.querySelectorAll('nav button').forEach(b => b.classList.remove('tab-active'));
+            document.getElementById(`sec-${tab}`).classList.remove('hidden');
+            document.getElementById(`tab-${tab}`).classList.add('tab-active');
+            if (tab === 'calendar' && calendar) setTimeout(() => calendar.updateSize(), 300);
+        };
+
+        window.openModal = (id) => document.getElementById(id).style.display = 'flex';
+        window.closeModal = (id) => document.getElementById(id).style.display = 'none';
+        
+        window.openEscalaModal = () => { 
+            document.getElementById('form-escala').reset(); 
+            document.getElementById('escala-id-original').value = ''; 
+            document.getElementById('escala-modal-title').innerText = 'Agendar Escala';
+            openModal('modal-escala'); 
+        };
+
+        window.editEscalaItem = (item) => { 
+            // 1. Abre o modal e limpa estados anteriores
+            openEscalaModal();
+            document.getElementById('escala-modal-title').innerText = 'Editar Escala';
+            
+            // 2. Grava os IDs originais (necessário para o seu escala.gs localizar a linha certa)
+            document.getElementById('escala-id-original').value = item.id_oficiante;
+            document.getElementById('escala-data-original').value = item.data.substring(0, 10);
+            document.getElementById('escala-turno-original').value = item.turno;
+            
+            // 3. Preenche os campos básicos do formulário
+            document.getElementById('escala-oficiante').value = item.id_oficiante;
+            document.getElementById('escala-data').value = item.data.substring(0, 10);
+            document.getElementById('escala-setor').value = item.setor;
+            document.getElementById('escala-turno').value = item.turno;
+        
+            // 4. Lógica específica para o Container de Recepção
+            const containerRecepcao = document.getElementById('container-horarios-recepcao');
+            const selectHoraInicial = document.getElementById('escala-hora-inicial');
+            const selectHoraFinal = document.getElementById('escala-hora-final');
+        
+            if (item.setor && item.setor.toUpperCase().includes('RECEPÇÃO')) {
+                // Mostra o campo azul se for recepção
+                containerRecepcao.classList.remove('hidden');
+                // Preenche os selects com os valores que vieram da planilha
+                selectHoraInicial.value = item.hora_inicial || "";
+                selectHoraFinal.value = item.hora_final || "";
+            } else {
+                // Esconde se for outro setor
+                containerRecepcao.classList.add('hidden');
+                selectHoraInicial.value = "";
+                selectHoraFinal.value = "";
+            }
+        };
+
+        document.addEventListener("DOMContentLoaded", function(){
+
+            document.getElementById("oficiante-nome").addEventListener("input", function(){
+                this.value = this.value.toUpperCase();
+            });
+        
+        });
+
+        document.querySelectorAll("#gestao-month-filter,#gestao-oficiante-filter,#gestao-turno-filter")
+    	.forEach(el => el.addEventListener("change", renderGestaoEscala));
+        
+        function showLoading(s) { document.getElementById('loading').classList.toggle('hidden', !s); }
+    </script>
+</body>
+</html>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
