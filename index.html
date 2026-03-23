@@ -1384,10 +1384,10 @@
                 };
         
                 grouped[dateKey].forEach(e => {
-
-                     e.turno === "PRIMEIRO" ? "1" :
-                        (e.turno === "SEGUNDO" || e.turno === "SEGUNDO PARC") ? "2" :
-                        e.turno === "TERCEIRO" ? "3" :
+                     const turno = (e.turno || "").toUpperCase().trim();
+                     turno === "PRIMEIRO" ? "1" :
+                        (turno === "SEGUNDO" || turno === "SEGUNDO PARC") ? "2" :
+                        turno === "TERCEIRO" ? "3" :
                         "";
         
                     let nomeFormatado = e.nome_oficiante;
