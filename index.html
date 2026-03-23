@@ -1195,11 +1195,30 @@
            rawData = rawData.filter(e => {
                 if (!e.data) return false;
             
-                const dataEvento = new Date(e.data);
+                const d = new Date(e.data);
             
-                if (isNaN(dataEvento)) return false; // proteção
+                if (isNaN(d)) return false;
             
-                return dataEvento >= dataInicio && dataEvento < dataFim;
+                // 🔥 remove hora (fica só data)
+                const dataEvento = new Date(
+                    d.getFullYear(),
+                    d.getMonth(),
+                    d.getDate()
+                );
+            
+                const inicio = new Date(
+                    dataInicio.getFullYear(),
+                    dataInicio.getMonth(),
+                    dataInicio.getDate()
+                );
+            
+                const fim = new Date(
+                    dataFim.getFullYear(),
+                    dataFim.getMonth(),
+                    dataFim.getDate()
+                );
+            
+                return dataEvento >= inicio && dataEvento <= fim;
             });
         
             if (!rawData.length) {
