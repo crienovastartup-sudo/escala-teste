@@ -1169,15 +1169,19 @@
                     10,
                     { align: 'right' }
                 );
-            
-            
-        
       
            // 🔹 Pega datas dos inputs (se existir) 
-            const dataInicioStr = document.getElementById("dataInicio")?.value; 
-            const dataFimStr = document.getElementById("dataFim")?.value; // 
+           function formatarDataLocal(data) {
+                const ano = data.getFullYear();
+                const mes = String(data.getMonth() + 1).padStart(2, '0');
+                const dia = String(data.getDate()).padStart(2, '0');
+                return `${ano}-${mes}-${dia}`;
+            }
+
+            const inicioStr = formatarDataLocal(dataInicio);
+            const fimStr = formatarDataLocal(dataFim);
             
-            🔹 Define período
+            // 🔹 Define período
             let dataInicio, dataFim;
             
             if (dataInicioStr && dataFimStr) {
@@ -1197,10 +1201,10 @@
            rawData = rawData.filter(e => {
                 if (!e.data) return false;
             
-                const dataStr = e.data.substring(0,10); // "YYYY-MM-DD"
+                const dataStr = e.data.substring(0,10);
             
-                const inicioStr = dataInicio.toISOString().substring(0,10);
-                const fimStr = dataFim.toISOString().substring(0,10);
+                const inicioStr = formatarDataLocal(dataInicio);
+                const fimStr = formatarDataLocal(dataFim);
             
                 return dataStr >= inicioStr && dataStr <= fimStr;
             });
