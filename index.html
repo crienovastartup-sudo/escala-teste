@@ -1177,9 +1177,6 @@
                 const dia = String(data.getDate()).padStart(2, '0');
                 return `${ano}-${mes}-${dia}`;
             }
-
-            const inicioStr = formatarDataLocal(dataInicio);
-            const fimStr = formatarDataLocal(dataFim);
             
             // 🔹 Define período
             let dataInicio, dataFim;
@@ -1201,10 +1198,9 @@
            rawData = rawData.filter(e => {
                 if (!e.data) return false;
             
-                const dataStr = e.data.substring(0,10);
-            
-                const inicioStr = formatarDataLocal(dataInicio);
-                const fimStr = formatarDataLocal(dataFim);
+                const dataStr = new Date(e.data).toLocaleDateString('sv-SE');
+                const inicioStr = dataInicio.toLocaleDateString('sv-SE');
+                const fimStr = dataFim.toLocaleDateString('sv-SE');
             
                 return dataStr >= inicioStr && dataStr <= fimStr;
             });
@@ -1220,7 +1216,8 @@
             // Agrupar por data
             const grouped = {};
             rawData.forEach(e => {
-                const d = (e.data || "").substring(0,10);
+                const d = new Date(e.data).toLocaleDateString('sv-SE');
+            
                 if (!grouped[d]) grouped[d] = [];
                 grouped[d].push(e);
             });
