@@ -1200,9 +1200,15 @@
            rawData = rawData.filter(e => {
                 if (!e.data) return false;
             
-                const dataStr = new Date(e.data).toLocaleDateString('sv-SE');
-                const inicioStr = dataInicio.toLocaleDateString('sv-SE');
-                const fimStr = dataFim.toLocaleDateString('sv-SE');
+                const dataStr = e.data.substring(0,10); // já está correto
+            
+                const inicioStr = dataInicioStr 
+                    ? dataInicioStr 
+                    : formatarDataLocal(dataInicio);
+            
+                const fimStr = dataFimStr 
+                    ? dataFimStr 
+                    : formatarDataLocal(dataFim);
             
                 return dataStr >= inicioStr && dataStr <= fimStr;
             });
@@ -1218,7 +1224,7 @@
             // Agrupar por data
             const grouped = {};
             rawData.forEach(e => {
-                const d = new Date(e.data).toLocaleDateString('sv-SE');
+                const d = e.data.substring(0,10);
             
                 if (!grouped[d]) grouped[d] = [];
                 grouped[d].push(e);
