@@ -1232,7 +1232,15 @@
             // Agrupar por data
             const grouped = {};
             rawData.forEach(e => {
-                const d = (e.data || "").substring(0,10);
+
+                const dataObj = new Date(e.data);
+            
+                const d = new Date(
+                    dataObj.getFullYear(),
+                    dataObj.getMonth(),
+                    dataObj.getDate()
+                ).toISOString().substring(0,10);
+            
                 if (!grouped[d]) grouped[d] = [];
                 grouped[d].push(e);
             });
