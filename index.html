@@ -1172,18 +1172,12 @@
             
             
         
-            // 🔹 Pega datas dos inputs (se existir)
-           if (dataInicioStr && dataFimStr) {
-                dataInicio = new Date(dataInicioStr);
-                dataFim = new Date(dataFimStr);
-            } else {
-                dataInicio = calendar.view.activeStart;
+      
+           // 🔹 Pega datas dos inputs (se existir) 
+            const dataInicioStr = document.getElementById("dataInicio")?.value; 
+            const dataFimStr = document.getElementById("dataFim")?.value; // 
             
-                dataFim = new Date(calendar.view.activeEnd);
-                dataFim.setDate(dataFim.getDate() - 1); // 🔥 CORREÇÃO AQUI
-            }
-            
-            // 🔹 Define período
+            🔹 Define período
             let dataInicio, dataFim;
             
             if (dataInicioStr && dataFimStr) {
@@ -1192,7 +1186,8 @@
             } else {
                 // 🔥 usa mês atual do calendário
                 dataInicio = calendar.view.activeStart;
-                dataFim = calendar.view.activeEnd;
+                dataFim = new Date(calendar.view.activeEnd);
+                dataFim.setDate(dataFim.getDate() - 1);
             }
             
             // 🔹 Busca dados
