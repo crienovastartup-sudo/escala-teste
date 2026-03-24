@@ -1195,9 +1195,12 @@
            rawData = rawData.filter(e => {
                 if (!e.data) return false;
             
-                const dataEvento = new Date(e.data + "T00:00:00"); // 🔥 FORÇA LOCAL
+                const dataStr = e.data.substring(0,10); // "YYYY-MM-DD"
             
-                return dataEvento >= dataInicio && dataEvento <= dataFim;
+                const inicioStr = dataInicio.toISOString().substring(0,10);
+                const fimStr = dataFim.toISOString().substring(0,10);
+            
+                return dataStr >= inicioStr && dataStr <= fimStr;
             });
         
             if (!rawData.length) {
