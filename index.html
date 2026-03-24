@@ -1173,8 +1173,15 @@
             
         
             // 🔹 Pega datas dos inputs (se existir)
-            const dataInicioStr = document.getElementById("dataInicio")?.value;
-            const dataFimStr = document.getElementById("dataFim")?.value;
+           if (dataInicioStr && dataFimStr) {
+                dataInicio = new Date(dataInicioStr);
+                dataFim = new Date(dataFimStr);
+            } else {
+                dataInicio = calendar.view.activeStart;
+            
+                dataFim = new Date(calendar.view.activeEnd);
+                dataFim.setDate(dataFim.getDate() - 1); // 🔥 CORREÇÃO AQUI
+            }
             
             // 🔹 Define período
             let dataInicio, dataFim;
