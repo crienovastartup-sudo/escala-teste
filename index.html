@@ -1171,6 +1171,8 @@
                 );
       
            // 🔹 Pega datas dos inputs (se existir) 
+            const dataInicioStr = document.getElementById("dataInicio")?.value;
+            const dataFimStr = document.getElementById("dataFim")?.value;
            function formatarDataLocal(data) {
                 const ano = data.getFullYear();
                 const mes = String(data.getMonth() + 1).padStart(2, '0');
