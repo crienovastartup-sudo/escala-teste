@@ -616,19 +616,40 @@
         };
 
         window.salvarEdicao = async function(eventId) {
+            console.log("SALVAR CLICADO", eventId);
+        
             const evento = calendar.getEventById(eventId);
+            if (!evento) {
+                alert("Evento não encontrado");
+                return;
+            }
         
-            const id_oficiante = document.getElementById("editOficiante").value;
-            const nome = document.getElementById("editOficiante").selectedOptions[0].text;
-        
+            const selectOficiante = document.getElementById("editOficiante");
             const data = document.getElementById("editData").value;
             const setor = document.getElementById("editSetor").value;
             const turno = document.getElementById("editTurno").value;
-            const horaIni = document.getElementById("editHoraIni").value;
-            const horaFim = document.getElementById("editHoraFim").value;
+            const horaIniInput = document.getElementById("editHoraIni");
+            const horaFimInput = document.getElementById("editHoraFim");
+        
+            if (!selectOficiante || !data) {
+                alert("Preencha os campos obrigatórios");
+                return;
+            }
+        
+            const id_oficiante = selectOficiante.value;
+            const nome = selectOficiante.selectedOptions[0].text;
+        
+            let horaIni = horaIniInput?.value || "";
+            let horaFim = horaFimInput?.value || "";
+        
+            // 🔥 REGRA: só recepção tem horário
+            if (setor !== "RECEPÇÃO") {
+                horaIni = "";
+                horaFim = "";
+            }
         
             // 🔴 VALIDAÇÃO DE CONFLITO
-            const conflitos = calendar.getEvents().filter(ev => {
+            const conflito = calendar.getEvents().some(ev => {
                 if (ev.id === eventId) return false;
         
                 const ext = ev.extendedProps;
@@ -640,8 +661,8 @@
                 );
             });
         
-            if (conflitos.length > 0) {
-                alert("⚠️ Conflito: oficiante já está escalado nesse turno!");
+            if (conflito) {
+                alert("⚠️ Conflito de escala!");
                 return;
             }
         
@@ -654,7 +675,7 @@
             evento.setExtendedProp("hora_inicial", horaIni);
             evento.setExtendedProp("hora_final", horaFim);
         
-            // 🔥 ATUALIZA SHEET
+            // 🔥 SALVA NO SHEET
             await atualizarEscala({
                 id: eventId,
                 nome,
