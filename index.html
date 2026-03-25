@@ -541,18 +541,45 @@
             }
         };
         
-        window.editarEvento = function(eventId) {
+        window.editarEvento = async function(eventId) {
             const evento = calendar.getEventById(eventId);
         
             if (!evento) return alert("Evento não encontrado");
         
-            const novaData = prompt("Nova data (YYYY-MM-DD):", evento.startStr.substring(0,10));
+            const ext = evento.extendedProps;
         
+            const novoNome = prompt("Nome:", evento.title);
+            if (!novoNome) return;
+        
+            const novaData = prompt("Data (YYYY-MM-DD):", evento.startStr.substring(0,10));
             if (!novaData) return;
         
-            evento.setStart(novaData);
+            const novoSetor = prompt("Setor:", ext.setor || "");
+            const novoTurno = prompt("Turno:", ext.turno || "");
         
-            alert("Evento atualizado!");
+            const novaHoraIni = prompt("Hora inicial:", ext.hora_inicial || "");
+            const novaHoraFim = prompt("Hora final:", ext.hora_final || "");
+        
+            // 🔥 ATUALIZA NA TELA
+            evento.setProp("title", novoNome);
+            evento.setStart(novaData);
+            evento.setExtendedProp("setor", novoSetor);
+            evento.setExtendedProp("turno", novoTurno);
+            evento.setExtendedProp("hora_inicial", novaHoraIni);
+            evento.setExtendedProp("hora_final", novaHoraFim);
+        
+            // 🔥 ATUALIZA NO SHEET
+            await atualizarEscala({
+                id: eventId,
+                nome: novoNome,
+                data: novaData,
+                setor: novoSetor,
+                turno: novoTurno,
+                hora_inicial: novaHoraIni,
+                hora_final: novaHoraFim
+            });
+        
+            alert("Escala atualizada!");
         };
 
         window.abrirReplicar = function(eventId) {
@@ -563,23 +590,37 @@
             replicarEvento(eventId, novaData);
         };
 
-        window.replicarEvento = function(eventId, novaData) {
+        window.replicarEvento = async function(eventId, novaData) {
             const evento = calendar.getEventById(eventId);
         
             if (!evento) return alert("Evento não encontrado");
         
-            calendar.addEvent({
-                id: String(Date.now()), // novo ID
-                title: evento.title,
-                start: novaData,
-                allDay: true,
+            const ext = evento.extendedProps;
         
+            const novoEvento = {
+                nome: evento.title,
+                data: novaData,
+                setor: ext.setor,
+                turno: ext.turno,
+                hora_inicial: ext.hora_inicial,
+                hora_final: ext.hora_final,
+                id_oficiante: ext.id_oficiante
+            };
+        
+            // 🔥 1. SALVA NO SHEET (USA SUA FUNÇÃO EXISTENTE)
+            await salvarEscala(novoEvento); // 👈 TROCAR pelo nome real da sua função
+        
+            // 🔥 2. ADICIONA NA TELA
+            calendar.addEvent({
+                id: "temp_" + Date.now(),
+                title: novoEvento.nome,
+                start: novaData,
                 extendedProps: {
-                    ...evento.extendedProps
+                    ...novoEvento
                 }
             });
         
-            alert("Escala replicada com sucesso!");
+            alert("Escala replicada e salva!");
         };
         
         function initCalendar() {
