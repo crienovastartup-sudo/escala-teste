@@ -541,53 +541,191 @@
             }
         };
         
-        window.editarEvento = async function(eventId) {
+        window.editarEvento = function(eventId) {
             const evento = calendar.getEventById(eventId);
-        
             if (!evento) return alert("Evento não encontrado");
         
             const ext = evento.extendedProps;
         
-            const novoNome = prompt("Nome:", evento.title);
-            if (!novoNome) return;
+            const container = document.getElementById('calendar-popup-container');
+            const content = document.getElementById('calendar-popup-content');
         
-            const novaData = prompt("Data (YYYY-MM-DD):", evento.startStr.substring(0,10));
-            if (!novaData) return;
+            // 🔥 monta opções de oficiante automaticamente
+            const opcoesOficiantes = oficiantes.map(o => `
+                <option value="${o.id}" ${String(o.id) === String(ext.id_oficiante) ? "selected" : ""}>
+                    ${o.nome}
+                </option>
+            `).join("");
         
-            const novoSetor = prompt("Setor:", ext.setor || "");
-            const novoTurno = prompt("Turno:", ext.turno || "");
+            content.innerHTML = `
+                <div class="p-6">
+                    <h2 class="text-lg font-bold mb-4 text-center">Editar Escala</h2>
         
-            const novaHoraIni = prompt("Hora inicial:", ext.hora_inicial || "");
-            const novaHoraFim = prompt("Hora final:", ext.hora_final || "");
+                    <label class="text-sm font-semibold">Oficiante</label>
+                    <select id="editOficiante" class="w-full mb-3 p-2 border rounded-lg">
+                        ${opcoesOficiantes}
+                    </select>
         
-            // 🔥 ATUALIZA NA TELA
-            evento.setProp("title", novoNome);
-            evento.setStart(novaData);
-            evento.setExtendedProp("setor", novoSetor);
-            evento.setExtendedProp("turno", novoTurno);
-            evento.setExtendedProp("hora_inicial", novaHoraIni);
-            evento.setExtendedProp("hora_final", novaHoraFim);
+                    <label class="text-sm font-semibold">Data</label>
+                    <input type="date" id="editData" value="${evento.startStr.substring(0,10)}"
+                        class="w-full mb-3 p-2 border rounded-lg">
         
-            // 🔥 ATUALIZA NO SHEET
-            await atualizarEscala({
-                id: eventId,
-                nome: novoNome,
-                data: novaData,
-                setor: novoSetor,
-                turno: novoTurno,
-                hora_inicial: novaHoraIni,
-                hora_final: novaHoraFim
+                    <label class="text-sm font-semibold">Setor</label>
+                    <select id="editSetor" class="w-full mb-3 p-2 border rounded-lg">
+                        <option ${ext.setor==="BATISTÉRIO"?"selected":""}>BATISTÉRIO</option>
+                        <option ${ext.setor==="RECEPÇÃO"?"selected":""}>RECEPÇÃO</option>
+                        <option ${ext.setor==="SELAMENTO"?"selected":""}>SELAMENTO</option>
+                    </select>
+        
+                    <label class="text-sm font-semibold">Turno</label>
+                    <select id="editTurno" class="w-full mb-3 p-2 border rounded-lg">
+                        <option ${ext.turno==="PRIMEIRO"?"selected":""}>PRIMEIRO</option>
+                        <option ${ext.turno==="SEGUNDO"?"selected":""}>SEGUNDO</option>
+                        <option ${ext.turno==="TERCEIRO"?"selected":""}>TERCEIRO</option>
+                    </select>
+        
+                    <label class="text-sm font-semibold">Hora Inicial</label>
+                    <input type="time" id="editHoraIni" value="${ext.hora_inicial || ''}"
+                        class="w-full mb-3 p-2 border rounded-lg">
+        
+                    <label class="text-sm font-semibold">Hora Final</label>
+                    <input type="time" id="editHoraFim" value="${ext.hora_final || ''}"
+                        class="w-full mb-4 p-2 border rounded-lg">
+        
+                    <div class="flex gap-2">
+                        <button onclick="salvarEdicao('${eventId}')"
+                            class="flex-1 bg-green-600 text-white py-2 rounded-lg font-bold">
+                            Salvar
+                        </button>
+        
+                        <button onclick="excluirEvento('${eventId}')"
+                            class="flex-1 bg-red-600 text-white py-2 rounded-lg font-bold">
+                            Excluir
+                        </button>
+        
+                        <button onclick="closeCalendarPopup()"
+                            class="flex-1 bg-gray-300 py-2 rounded-lg font-bold">
+                            Cancelar
+                        </button>
+                    </div>
+                </div>
+            `;
+        
+            container.classList.remove('hidden');
+            container.classList.add('flex');
+        };
+
+        window.salvarEdicao = async function(eventId) {
+            const evento = calendar.getEventById(eventId);
+        
+            const id_oficiante = document.getElementById("editOficiante").value;
+            const nome = document.getElementById("editOficiante").selectedOptions[0].text;
+        
+            const data = document.getElementById("editData").value;
+            const setor = document.getElementById("editSetor").value;
+            const turno = document.getElementById("editTurno").value;
+            const horaIni = document.getElementById("editHoraIni").value;
+            const horaFim = document.getElementById("editHoraFim").value;
+        
+            // 🔴 VALIDAÇÃO DE CONFLITO
+            const conflitos = calendar.getEvents().filter(ev => {
+                if (ev.id === eventId) return false;
+        
+                const ext = ev.extendedProps;
+        
+                return (
+                    ext.id_oficiante == id_oficiante &&
+                    ev.startStr.substring(0,10) === data &&
+                    ext.turno === turno
+                );
             });
         
+            if (conflitos.length > 0) {
+                alert("⚠️ Conflito: oficiante já está escalado nesse turno!");
+                return;
+            }
+        
+            // 🔥 ATUALIZA TELA
+            evento.setProp("title", nome);
+            evento.setStart(data);
+            evento.setExtendedProp("id_oficiante", id_oficiante);
+            evento.setExtendedProp("setor", setor);
+            evento.setExtendedProp("turno", turno);
+            evento.setExtendedProp("hora_inicial", horaIni);
+            evento.setExtendedProp("hora_final", horaFim);
+        
+            // 🔥 ATUALIZA SHEET
+            await atualizarEscala({
+                id: eventId,
+                nome,
+                id_oficiante,
+                data,
+                setor,
+                turno,
+                hora_inicial: horaIni,
+                hora_final: horaFim
+            });
+        
+            closeCalendarPopup();
             alert("Escala atualizada!");
         };
 
-        window.abrirReplicar = function(eventId) {
-            const novaData = prompt("Digite a nova data (YYYY-MM-DD):");
+        window.excluirEvento = async function(eventId) {
+            if (!confirm("Deseja realmente excluir este evento?")) return;
         
-            if (!novaData) return;
+            const evento = calendar.getEventById(eventId);
+            if (!evento) return;
+        
+            // 🔥 REMOVE DA TELA
+            evento.remove();
+        
+            // 🔥 REMOVE DO SHEET
+            await deletarEscala({ id: eventId });
+        
+            closeCalendarPopup();
+            alert("Evento excluído!");
+        };
+        
+        window.abrirReplicar = function(eventId) {
+            const container = document.getElementById('calendar-popup-container');
+            const content = document.getElementById('calendar-popup-content');
+        
+            content.innerHTML = `
+                <div class="p-6">
+                    <h2 class="text-lg font-bold mb-4 text-center">Replicar Escala</h2>
+        
+                    <label class="text-sm font-semibold">Escolha a nova data:</label>
+                    <input type="date" id="novaDataReplicar" 
+                           class="w-full mt-2 mb-4 p-2 border rounded-lg">
+        
+                    <div class="flex gap-2">
+                        <button onclick="confirmarReplicar('${eventId}')"
+                            class="flex-1 bg-blue-600 text-white py-2 rounded-lg font-bold">
+                            Replicar
+                        </button>
+        
+                        <button onclick="closeCalendarPopup()"
+                            class="flex-1 bg-gray-300 py-2 rounded-lg font-bold">
+                            Cancelar
+                        </button>
+                    </div>
+                </div>
+            `;
+        
+            container.classList.remove('hidden');
+            container.classList.add('flex');
+        };
+
+        window.confirmarReplicar = function(eventId) {
+            const novaData = document.getElementById("novaDataReplicar").value;
+        
+            if (!novaData) {
+                alert("Escolha uma data!");
+                return;
+            }
         
             replicarEvento(eventId, novaData);
+            closeCalendarPopup();
         };
 
         window.replicarEvento = async function(eventId, novaData) {
