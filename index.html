@@ -371,7 +371,7 @@
     </div>
 
     <script>
-        const API_URL = "https://script.google.com/macros/s/AKfycbydJsVPa1rLUYG9jU9ncLjIbSBCrE5iqymf7wC28J0SomsTJavLBC6cUSjaixfzl7j1JQ/exec";
+        const API_URL = "https://script.google.com/macros/s/AKfycbw58JDN1jwZezfzXhBdE_iTLaEtAkmWwhDh2rgkv2V5NLnZ3qbDEvwJyOraMGdHXo3-VA/exec";
         const CLOUD_NAME = "dwlrxb6a0";
         const UPLOAD_PRESET = "ml_default";
         
@@ -616,25 +616,16 @@
         };
 
         window.salvarEdicao = async function(eventId) {
-            console.log("SALVAR CLICADO", eventId);
-        
             const evento = calendar.getEventById(eventId);
-            if (!evento) {
-                alert("Evento não encontrado");
-                return;
-            }
+            if (!evento) return alert("Evento não encontrado");
         
             const selectOficiante = document.getElementById("editOficiante");
             const data = document.getElementById("editData").value;
             const setor = document.getElementById("editSetor").value;
             const turno = document.getElementById("editTurno").value;
+        
             const horaIniInput = document.getElementById("editHoraIni");
             const horaFimInput = document.getElementById("editHoraFim");
-        
-            if (!selectOficiante || !data) {
-                alert("Preencha os campos obrigatórios");
-                return;
-            }
         
             const id_oficiante = selectOficiante.value;
             const nome = selectOficiante.selectedOptions[0].text;
@@ -642,27 +633,46 @@
             let horaIni = horaIniInput?.value || "";
             let horaFim = horaFimInput?.value || "";
         
-            // 🔥 REGRA: só recepção tem horário
             if (setor !== "RECEPÇÃO") {
                 horaIni = "";
                 horaFim = "";
             }
         
-            // 🔴 VALIDAÇÃO DE CONFLITO
+            // 🔴 VALIDAÇÃO
             const conflito = calendar.getEvents().some(ev => {
                 if (ev.id === eventId) return false;
         
-                const ext = ev.extendedProps;
-        
                 return (
-                    ext.id_oficiante == id_oficiante &&
+                    ev.extendedProps.id_oficiante == id_oficiante &&
                     ev.startStr.substring(0,10) === data &&
-                    ext.turno === turno
+                    ev.extendedProps.turno === turno
                 );
             });
         
             if (conflito) {
                 alert("⚠️ Conflito de escala!");
+                return;
+            }
+        
+            // 🔥 SALVA NO SHEET (ANTES de atualizar tela)
+            const payload = {
+                action: "updateEscala",
+                data,
+                id_oficiante,
+                nome_oficiante: nome,
+                setor,
+                turno,
+                id_original: eventId,
+                data_original: evento.startStr.substring(0,10),
+                turno_original: evento.extendedProps.turno,
+                hora_inicial: horaIni,
+                hora_final: horaFim
+            };
+        
+            const res = await apiCall(payload);
+        
+            if (res.status !== "ok") {
+                alert("Erro ao salvar no banco");
                 return;
             }
         
@@ -674,18 +684,6 @@
             evento.setExtendedProp("turno", turno);
             evento.setExtendedProp("hora_inicial", horaIni);
             evento.setExtendedProp("hora_final", horaFim);
-        
-            // 🔥 SALVA NO SHEET
-            await atualizarEscala({
-                id: eventId,
-                nome,
-                id_oficiante,
-                data,
-                setor,
-                turno,
-                hora_inicial: horaIni,
-                hora_final: horaFim
-            });
         
             closeCalendarPopup();
             alert("Escala atualizada!");
@@ -751,35 +749,32 @@
 
         window.replicarEvento = async function(eventId, novaData) {
             const evento = calendar.getEventById(eventId);
-        
             if (!evento) return alert("Evento não encontrado");
         
             const ext = evento.extendedProps;
         
-            const novoEvento = {
-                nome: evento.title,
+            const payload = {
+                action: "addEscala",
+        
                 data: novaData,
+                id_oficiante: ext.id_oficiante,
+                nome_oficiante: evento.title,
+        
                 setor: ext.setor,
                 turno: ext.turno,
-                hora_inicial: ext.hora_inicial,
-                hora_final: ext.hora_final,
-                id_oficiante: ext.id_oficiante
+        
+                hora_inicial: ext.hora_inicial || "",
+                hora_final: ext.hora_final || ""
             };
         
-            // 🔥 1. SALVA NO SHEET (USA SUA FUNÇÃO EXISTENTE)
-            await salvarEscala(novoEvento); // 👈 TROCAR pelo nome real da sua função
+            const res = await apiCall(payload);
         
-            // 🔥 2. ADICIONA NA TELA
-            calendar.addEvent({
-                id: "temp_" + Date.now(),
-                title: novoEvento.nome,
-                start: novaData,
-                extendedProps: {
-                    ...novoEvento
-                }
-            });
-        
-            alert("Escala replicada e salva!");
+            if (res.status === "ok") {
+                fetchData(); // 🔥 recarrega do banco
+                alert("Escala replicada!");
+            } else {
+                alert("Erro ao replicar");
+            }
         };
         
         function initCalendar() {
@@ -1900,28 +1895,44 @@
             if (res.status === "ok") { closeModal('modal-oficiante'); fetchData(); e.target.reset(); }
         };
 
+
         document.getElementById('form-escala').onsubmit = async (e) => {
             e.preventDefault();
+        
             const ofi = document.getElementById('escala-oficiante');
-            const idOrig = String(document.getElementById('escala-id-original').value || "").trim()
-            
+            const idOrig = String(document.getElementById('escala-id-original').value || "").trim();
+        
             const payload = {
                 action: idOrig ? "updateEscala" : "addEscala",
+        
                 data: document.getElementById('escala-data').value,
                 id_oficiante: ofi.value,
                 nome_oficiante: ofi.options[ofi.selectedIndex].text,
+        
                 setor: document.getElementById('escala-setor').value,
                 turno: document.getElementById('escala-turno').value,
+        
+                // 🔥 ESSENCIAIS PARA UPDATE
                 id_original: idOrig,
                 data_original: document.getElementById('escala-data-original').value,
                 turno_original: document.getElementById('escala-turno-original').value,
-                hora_inicial: document.getElementById('escala-hora-inicial').value,
-                hora_final: document.getElementById('escala-hora-final').value
+        
+                // 🔥 HORÁRIOS
+                hora_inicial: document.getElementById('escala-hora-inicial').value || "",
+                hora_final: document.getElementById('escala-hora-final').value || ""
             };
-            
+        
+            console.log("📤 ENVIANDO:", payload);
+        
             const res = await apiCall(payload);
-            if (res.status === "ok") { closeModal('modal-escala'); fetchData(); }
-        };
+        
+            if (res.status === "ok") {
+                closeModal('modal-escala');
+                fetchData(); // 🔥 atualiza calendário
+            } else {
+                alert(res.message || "Erro ao salvar");
+            }
+        };    
 
         window.deleteOficiante = async (id) => {
             if(confirm("Deseja realmente excluir este oficiante? Isso não removerá escalas passadas, mas impedirá novas.")) {
@@ -1965,38 +1976,63 @@
         };
 
         window.editEscalaItem = (item) => { 
-            // 1. Abre o modal e limpa estados anteriores
+            if (!item) {
+                alert("Erro: item não encontrado");
+                return;
+            }
+        
+            // 🔹 1. Abre modal
             openEscalaModal();
             document.getElementById('escala-modal-title').innerText = 'Editar Escala';
             
-            // 2. Grava os IDs originais (necessário para o seu escala.gs localizar a linha certa)
-            document.getElementById('escala-id-original').value = item.id_oficiante;
-            document.getElementById('escala-data-original').value = item.data.substring(0, 10);
-            document.getElementById('escala-turno-original').value = item.turno;
+            // 🔥 2. CHAVE ORIGINAL (ESSENCIAL PRO UPDATE)
+            document.getElementById('escala-id-original').value = item.id_oficiante || "";
+            document.getElementById('escala-data-original').value = (item.data || "").substring(0, 10);
+            document.getElementById('escala-turno-original').value = item.turno || "";
             
-            // 3. Preenche os campos básicos do formulário
-            document.getElementById('escala-oficiante').value = item.id_oficiante;
-            document.getElementById('escala-data').value = item.data.substring(0, 10);
-            document.getElementById('escala-setor').value = item.setor;
-            document.getElementById('escala-turno').value = item.turno;
+            // 🔹 3. PREENCHE FORMULÁRIO
+            document.getElementById('escala-oficiante').value = item.id_oficiante || "";
+            document.getElementById('escala-data').value = (item.data || "").substring(0, 10);
+            document.getElementById('escala-setor').value = item.setor || "";
+            document.getElementById('escala-turno').value = item.turno || "";
         
-            // 4. Lógica específica para o Container de Recepção
+            // 🔹 4. RECEPÇÃO (HORÁRIOS)
             const containerRecepcao = document.getElementById('container-horarios-recepcao');
             const selectHoraInicial = document.getElementById('escala-hora-inicial');
             const selectHoraFinal = document.getElementById('escala-hora-final');
+            const selectSetor = document.getElementById('escala-setor');
         
-            if (item.setor && item.setor.toUpperCase().includes('RECEPÇÃO')) {
-                // Mostra o campo azul se for recepção
+            function atualizarCamposRecepcao() {
+                const setorAtual = (selectSetor.value || "").toUpperCase();
+        
+                if (setorAtual === "RECEPÇÃO") {
+                    containerRecepcao.classList.remove('hidden');
+                } else {
+                    containerRecepcao.classList.add('hidden');
+                    selectHoraInicial.value = "";
+                    selectHoraFinal.value = "";
+                }
+            }
+        
+            // 🔥 5. DEFINE ESTADO INICIAL
+            if ((item.setor || "").toUpperCase() === "RECEPÇÃO") {
                 containerRecepcao.classList.remove('hidden');
-                // Preenche os selects com os valores que vieram da planilha
                 selectHoraInicial.value = item.hora_inicial || "";
                 selectHoraFinal.value = item.hora_final || "";
             } else {
-                // Esconde se for outro setor
                 containerRecepcao.classList.add('hidden');
                 selectHoraInicial.value = "";
                 selectHoraFinal.value = "";
             }
+        
+            // 🔥 6. EVENTO AO TROCAR SETOR
+            selectSetor.addEventListener('change', atualizarCamposRecepcao);
+        
+            console.log("🛠 EDITANDO:", {
+                id_oficiante: item.id_oficiante,
+                data_original: (item.data || "").substring(0, 10),
+                turno_original: item.turno
+            });
         };
 
         document.addEventListener("DOMContentLoaded", function(){
