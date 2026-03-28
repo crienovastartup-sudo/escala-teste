@@ -1115,11 +1115,14 @@
                 (!fO || String(item.id_oficiante) === String(fO))
             ).forEach(e => {
                 calendar.addEvent({ 
+                    id: e.id_oficiante + "_" + e.data.substring(0,10) + "_" + e.turno,
+                
                     title: e.nome_oficiante, 
                     start: e.data.substring(0, 10), 
                     allDay: true, 
-                    // INJEÇÃO DA ORDEM: Sem isso no primeiro nível, o calendar não ordena.
+                
                     ordemTurno: pesosTurno[String(e.turno).toUpperCase()] || 99,
+                
                     extendedProps: { ...e } 
                 });
             });
