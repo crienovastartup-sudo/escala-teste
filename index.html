@@ -742,7 +742,7 @@
                 return;
             }
         
-            // 🔥 PAYLOAD CORRETO
+            // 🔥 CORREÇÃO AQUI
             const payload = {
                 action: "updateEscala",
         
@@ -752,10 +752,8 @@
                 setor,
                 turno,
         
-                // ✅ CORREÇÃO PRINCIPAL
+                // ✅ AGORA CORRETO
                 id_original: ext.id_oficiante,
-        
-                // ✅ esses dois já estavam corretos
                 data_original: evento.startStr.substring(0,10),
                 turno_original: ext.turno,
         
@@ -763,12 +761,12 @@
                 hora_final: horaFim
             };
         
-            console.log("ENVIANDO:", payload);
+            console.log("ENVIANDO:", payload); // 🔍 DEBUG
         
             const res = await apiCall(payload);
         
             if (res.status !== "ok") {
-                alert("Erro ao salvar no banco: " + res.message);
+                alert(res.message || "Erro ao salvar no banco");
                 return;
             }
         
