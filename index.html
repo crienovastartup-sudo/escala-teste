@@ -1921,7 +1921,7 @@
                 head: head,
                 body: body,
                 styles: {
-                    fontSize: 6,
+                    fontSize: 8,
                     cellPadding: 0.8,
                     lineColor: [0,0,0],
                     lineHeight: 1,
@@ -1943,14 +1943,14 @@
         
                     // 🔥 DATA
                     if (col === 0) {
-                        data.cell.styles.fontSize = 12;
+                        data.cell.styles.fontSize = 10;
                         data.cell.styles.fontStyle = 'bold';
         
                         // 🔴 SÁBADO
                         if (textoUpper.includes("SÁB") || textoUpper.includes("SAB")) {
                             data.cell.styles.textColor = [200, 0, 0];
                             data.cell.styles.fontStyle = 'bold';
-                            data.cell.styles.fontSize = 12;
+                            data.cell.styles.fontSize = 10;
                         }
                     }
         
