@@ -1545,15 +1545,16 @@
         
         window.relatorioEscalaSetores = function() {
             
-            // 🔥 VALIDAÇÃO DE FILTROS
             const filtroSetor = document.getElementById("filter-setor")?.value;
             const filtroOficiante = document.getElementById("filter-oficiante")?.value;
-        
-            if (!filtroSetor) {
-                alert("⚠️ Selecione um setor para gerar o relatório.");
+            
+            // 🔴 NÃO pode ter setor selecionado
+            if (filtroSetor) {
+                alert("⚠️ Para este relatório, selecione 'Todos os Setores'.");
                 return;
             }
-        
+            
+            // 🔴 (opcional, mas recomendado)
             if (filtroOficiante) {
                 alert("⚠️ Para este relatório, selecione 'Todos os Oficiantes'.");
                 return;
