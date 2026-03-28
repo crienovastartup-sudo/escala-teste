@@ -310,11 +310,14 @@
 
 
     
-            function popularDropdownHorarios(turno, idInicio = 'escala-hora-inicial', idFim = 'escala-hora-final') {
-                const inicioSel = document.getElementById(idInicio);
+            function popularDropdownHorarios(turno, idIni, idFim) {
+                const inicioSel = document.getElementById(idIni);
                 const fimSel = document.getElementById(idFim);
             
-                if (!inicioSel || !fimSel) return;
+                if (!inicioSel || !fimSel) {
+                    console.error("ERRO: Select não encontrado", idIni, idFim);
+                    return;
+                }
             
                 let startHour, endHour;
             
@@ -328,13 +331,17 @@
             
                 for (let h = startHour; h <= endHour; h++) {
                     for (let m = 0; h === endHour ? m === 0 : m < 60; m += 30) {
-                        const time = `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`;
+                        const hh = String(h).padStart(2, '0');
+                        const mm = String(m).padStart(2, '0');
+                        const time = `${hh}:${mm}`;
                         options += `<option value="${time}">${time}</option>`;
                     }
                 }
             
                 inicioSel.innerHTML = options;
                 fimSel.innerHTML = options;
+            
+                console.log("POPULOU:", idIni, [...inicioSel.options].map(o => o.value));
             }
             
             function handleRecepcaoDisplay() {
@@ -549,19 +556,18 @@
                 containerRecepcao.classList.remove('hidden');
             
                 const turno = (item.turno || "").trim().toUpperCase();
-            
+
                 popularDropdownHorarios(turno, 'escala-hora-inicial', 'escala-hora-final');
-            
+                
                 const horaIni = formatarHora(item.hora_inicial);
                 const horaFim = formatarHora(item.hora_final);
-            
-                // 🔥 AGORA CORRETO (GARANTE QUE O SELECT JÁ EXISTE)
-                requestAnimationFrame(() => {
+                
+                setTimeout(() => {
                     selectHoraInicial.value = horaIni;
                     selectHoraFinal.value = horaFim;
-            
-                    console.log("Hora aplicada:", horaIni, horaFim);
-                });
+                
+                    console.log("SETANDO:", horaIni, horaFim);
+                }, 100);
             } else {
                 containerRecepcao.classList.add('hidden');
                 selectHoraInicial.value = "";
