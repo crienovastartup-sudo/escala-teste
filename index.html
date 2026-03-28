@@ -547,21 +547,27 @@
         
             if (item.setor && item.setor.toUpperCase().includes('RECEPÇÃO')) {
                 containerRecepcao.classList.remove('hidden');
-            
-                // 🔥 PRIMEIRO: popula os horários
+        
+                // 🔥 1. popula horários
                 popularDropdownHorarios(item.turno, 'escala-hora-inicial', 'escala-hora-final');
-
-                setTimeout(() => {
-                    selectHoraInicial.value = formatarHora(item.hora_inicial);
-                    selectHoraFinal.value = formatarHora(item.hora_final);
-                }, 50);
-            
-                // 🔥 DEPOIS: define valor (espera renderizar)
-                setTimeout(() => {
-                    selectHoraInicial.value = formatarHora(item.hora_inicial);
-                    selectHoraFinal.value = formatarHora(item.hora_final);
-                }, 50);
-            
+        
+                // 🔥 2. formata valores
+                const horaIni = formatarHora(item.hora_inicial);
+                const horaFim = formatarHora(item.hora_final);
+        
+                // 🔥 3. DEBUG (ESSENCIAL)
+                console.log("Hora inicial:", horaIni);
+                console.log("Opções disponíveis:", [...selectHoraInicial.options].map(o => o.value));
+        
+                // 🔥 4. aplica valor SOMENTE se existir
+                if ([...selectHoraInicial.options].some(o => o.value === horaIni)) {
+                    selectHoraInicial.value = horaIni;
+                }
+        
+                if ([...selectHoraFinal.options].some(o => o.value === horaFim)) {
+                    selectHoraFinal.value = horaFim;
+                }
+        
             } else {
                 containerRecepcao.classList.add('hidden');
                 selectHoraInicial.value = "";
