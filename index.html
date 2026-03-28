@@ -308,27 +308,7 @@
             const turnoSelect = document.getElementById('escala-turno');
             const containerHorarios = document.getElementById('container-horarios-recepcao');
 
-            function formatarHora(hora) {
-                if (!hora) return "";
-            
-                // Se já está correto
-                if (typeof hora === "string" && hora.match(/^\d{2}:\d{2}$/)) {
-                    return hora;
-                }
-            
-                // Se vem como "07:00:00"
-                if (typeof hora === "string" && hora.includes(":")) {
-                    return hora.substring(0, 5);
-                }
-            
-                // Se vier como Date
-                const d = new Date(hora);
-                if (!isNaN(d)) {
-                    return d.toTimeString().substring(0, 5);
-                }
-            
-                return "";
-            }
+
     
             function popularDropdownHorarios(turno, idInicio = 'escala-hora-inicial', idFim = 'escala-hora-final') {
                 const inicioSel = document.getElementById(idInicio);
@@ -516,26 +496,36 @@
          */
         const formatarHora = (valor) => {
             if (!valor) return "";
+        
             let str = String(valor).trim();
-            
-            // Se o valor começar com o apóstrofo (forçado na planilha), removemos para exibição
+        
+            // Remove apóstrofo
             if (str.startsWith("'")) {
                 str = str.substring(1);
             }
         
-            // Corrige o formato ISO vindo do Sheets (1899-12-30T10:00:00)
-            if (str.includes('T')) {
-                str = str.split('T')[1];
+            // Se vier ISO (ex: 1899-12-30T07:00:00)
+            if (str.includes("T")) {
+                str = str.split("T")[1];
             }
-            
-            // Busca o padrão HH:mm (ex: 07:00)
+        
+            // Se for Date válido
+            const d = new Date(valor);
+            if (!isNaN(d) && str.length > 10) {
+                return d.toTimeString().substring(0, 5);
+            }
+        
+            // Regex segura
             const match = str.match(/(\d{1,2}):(\d{2})/);
+        
             if (match) {
-                return `${match[1].padStart(2, '0')}:${match[2]}`;
+                const hora = match[1].padStart(2, '0');
+                const min = match[2];
+                return `${hora}:${min}`;
             }
-            return str.substring(0, 5);
+        
+            return "";
         };
-
         
         // 2. Função de Edição Atualizada
         window.editEscalaItem = (item) => { 
