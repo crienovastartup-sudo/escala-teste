@@ -789,11 +789,28 @@
             const evento = calendar.getEventById(eventId);
             if (!evento) return;
         
-            // 🔥 REMOVE DA TELA
-            evento.remove();
+            const ext = evento.extendedProps;
         
-            // 🔥 REMOVE DO SHEET
-            await deletarEscala({ id: eventId });
+            const payload = {
+                action: "deleteEscala",
+        
+                // 🔥 CHAVE CORRETA
+                data: evento.startStr.substring(0,10),
+                turno: ext.turno,
+                id_oficiante: ext.id_oficiante
+            };
+        
+            console.log("EXCLUINDO:", payload);
+        
+            const res = await apiCall(payload);
+        
+            if (res.status !== "ok") {
+                alert(res.message || "Erro ao excluir");
+                return;
+            }
+        
+            // 🔥 REMOVE DA TELA (SÓ DEPOIS DE CONFIRMAR)
+            evento.remove();
         
             closeCalendarPopup();
             alert("Evento excluído!");
