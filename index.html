@@ -1093,6 +1093,23 @@
                 }
             });
             calendar.render();
+
+            // ✅ AQUI É O LUGAR CERTO
+            document.getElementById("dataInicio").addEventListener("change", atualizarCalendarioPorData);
+            document.getElementById("dataFim").addEventListener("change", atualizarCalendarioPorData);
+            
+            function atualizarCalendarioPorData() {
+                const dataInicio = document.getElementById("dataInicio").value;
+                const dataFim = document.getElementById("dataFim").value;
+            
+                if (!dataInicio) return;
+            
+                calendar.gotoDate(dataInicio);
+            
+                if (typeof applyFilters === "function") {
+                    applyFilters();
+                }
+            }
         
             // Funções globais para o Popup
             window.closeCalendarPopup = function() {
