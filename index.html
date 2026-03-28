@@ -548,24 +548,20 @@
             if (item.setor && item.setor.toUpperCase().includes('RECEPÇÃO')) {
                 containerRecepcao.classList.remove('hidden');
             
-                // ✅ NORMALIZA TURNO (ESSENCIAL)
                 const turno = (item.turno || "").trim().toUpperCase();
             
-                // ✅ POPULA OS HORÁRIOS CORRETOS
                 popularDropdownHorarios(turno, 'escala-hora-inicial', 'escala-hora-final');
             
-                // ✅ FORMATA HORAS
                 const horaIni = formatarHora(item.hora_inicial);
                 const horaFim = formatarHora(item.hora_final);
             
-                // ✅ DEFINE DIRETO (SEM IF)
-                selectHoraInicial.value = horaIni;
-                selectHoraFinal.value = horaFim;
+                // 🔥 AGORA CORRETO (GARANTE QUE O SELECT JÁ EXISTE)
+                requestAnimationFrame(() => {
+                    selectHoraInicial.value = horaIni;
+                    selectHoraFinal.value = horaFim;
             
-                // 🔍 DEBUG
-                console.log("Turno:", turno);
-                console.log("HoraIni:", horaIni);
-                console.log("HoraFim:", horaFim);
+                    console.log("Hora aplicada:", horaIni, horaFim);
+                });
             } else {
                 containerRecepcao.classList.add('hidden');
                 selectHoraInicial.value = "";
