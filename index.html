@@ -538,6 +538,8 @@
         window.editEscalaItem = (item) => { 
             openEscalaModal();
         
+            const modal = document.getElementById('modal-escala');
+        
             document.getElementById('escala-modal-title').innerText = 'Editar Escala';
             
             document.getElementById('escala-id-original').value = item.id_oficiante;
@@ -549,43 +551,27 @@
             document.getElementById('escala-setor').value = item.setor;
             document.getElementById('escala-turno').value = item.turno;
         
-            const containerRecepcao = document.getElementById('container-horarios-recepcao');
-            const selectHoraInicial = document.getElementById('escala-hora-inicial');
-            const selectHoraFinal = document.getElementById('escala-hora-final');
-        
-            // 🔥 FUNÇÃO QUE GARANTE O VALOR NO SELECT
-            function setSelectValueForce(select, value) {
-                if (!value) return;
-        
-                const existe = [...select.options].some(o => o.value === value);
-        
-                if (!existe) {
-                    const opt = document.createElement("option");
-                    opt.value = value;
-                    opt.text = value;
-                    select.appendChild(opt);
-                }
-        
-                select.value = value;
-            }
+            const containerRecepcao = modal.querySelector('#container-horarios-recepcao');
+            const selectHoraInicial = modal.querySelector('#escala-hora-inicial');
+            const selectHoraFinal = modal.querySelector('#escala-hora-final');
         
             if (item.setor && item.setor.toUpperCase().includes('RECEPÇÃO')) {
                 containerRecepcao.classList.remove('hidden');
         
                 const turno = (item.turno || "").trim().toUpperCase();
         
-                // 🔥 POPULA OS HORÁRIOS
                 popularDropdownHorarios(turno, 'escala-hora-inicial', 'escala-hora-final');
         
-                // 🔥 FORMATA HORAS
                 const horaIni = formatarHora(item.hora_inicial);
                 const horaFim = formatarHora(item.hora_final);
         
-                // 🔥 GARANTE QUE O VALOR APAREÇA
-                setSelectValueForce(selectHoraInicial, horaIni);
-                setSelectValueForce(selectHoraFinal, horaFim);
+                setTimeout(() => {
+                    selectHoraInicial.value = horaIni;
+                    selectHoraFinal.value = horaFim;
         
-                console.log("HORÁRIOS APLICADOS:", horaIni, horaFim);
+                    console.log("APLICADO:", horaIni, horaFim);
+                    console.log("OPTIONS:", [...selectHoraInicial.options].map(o => o.value));
+                }, 100);
         
             } else {
                 containerRecepcao.classList.add('hidden');
@@ -593,6 +579,7 @@
                 selectHoraFinal.value = "";
             }
         };
+        
         
         window.editarEvento = function(eventId) {
             const evento = calendar.getEventById(eventId);
