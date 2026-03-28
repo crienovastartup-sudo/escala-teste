@@ -310,12 +310,7 @@
 
             
     
-            function popularDropdownHorarios(
-                turno,
-                idInicio = 'escala-hora-inicial',
-                idFim = 'escala-hora-final'
-            ) {
-            
+            function popularDropdownHorarios(turno, idInicio = 'escala-hora-inicial', idFim = 'escala-hora-final') {
                 const inicioSel = document.getElementById(idInicio);
                 const fimSel = document.getElementById(idFim);
             
@@ -333,9 +328,7 @@
             
                 for (let h = startHour; h <= endHour; h++) {
                     for (let m = 0; h === endHour ? m === 0 : m < 60; m += 30) {
-            
-                        const time = `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}`;
-            
+                        const time = `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`;
                         options += `<option value="${time}">${time}</option>`;
                     }
                 }
@@ -546,7 +539,12 @@
                 containerRecepcao.classList.remove('hidden');
             
                 // 🔥 PRIMEIRO: popula os horários
-                popularDropdownHorarios(item.turno);
+                popularDropdownHorarios(item.turno, 'escala-hora-inicial', 'escala-hora-final');
+
+                setTimeout(() => {
+                    selectHoraInicial.value = formatarHora(item.hora_inicial);
+                    selectHoraFinal.value = formatarHora(item.hora_final);
+                }, 50);
             
                 // 🔥 DEPOIS: define valor (espera renderizar)
                 setTimeout(() => {
@@ -649,6 +647,11 @@
             
                     // 🔥 AGORA CORRETO
                     popularDropdownHorarios(selectTurno.value, "editHoraIni", "editHoraFim");
+
+                    setTimeout(() => {
+                        horaIni.value = formatarHora(ext.hora_inicial);
+                        horaFim.value = formatarHora(ext.hora_final);
+                    }, 50);
             
                     setTimeout(() => {
                         horaIni.value = formatarHora(ext.hora_inicial);
