@@ -554,20 +554,22 @@
         
             if (item.setor && item.setor.toUpperCase().includes('RECEPÇÃO')) {
                 containerRecepcao.classList.remove('hidden');
-            
-                const turno = (item.turno || "").trim().toUpperCase();
-
-                popularDropdownHorarios(turno, 'escala-hora-inicial', 'escala-hora-final');
-                
-                const horaIni = formatarHora(item.hora_inicial);
-                const horaFim = formatarHora(item.hora_final);
                 
                 setTimeout(() => {
-                    selectHoraInicial.value = horaIni;
-                    selectHoraFinal.value = horaFim;
+
+                    const turno = (item.turno || "").trim().toUpperCase();
                 
-                    console.log("SETANDO:", horaIni, horaFim);
-                }, 100);
+                    popularDropdownHorarios(turno, 'escala-hora-inicial', 'escala-hora-final');
+                
+                    const horaIni = formatarHora(item.hora_inicial);
+                    const horaFim = formatarHora(item.hora_final);
+                
+                    document.getElementById('escala-hora-inicial').value = horaIni;
+                    document.getElementById('escala-hora-final').value = horaFim;
+                
+                    console.log("FINAL APLICADO:", horaIni, horaFim);
+                
+                }, 200);
             } else {
                 containerRecepcao.classList.add('hidden');
                 selectHoraInicial.value = "";
