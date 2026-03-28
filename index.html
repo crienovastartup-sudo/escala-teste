@@ -1768,14 +1768,59 @@
             const { jsPDF } = window.jspdf;
             const doc = new jsPDF('landscape');
         
-            const rawData = typeof getFilteredData === 'function' ? getFilteredData() : [];
+            let rawData = typeof getFilteredData === 'function' ? getFilteredData() : [];
         
             if (!rawData.length) {
                 alert("Nenhum dado encontrado.");
                 return;
             }
         
-            // Descobrir qual setor está filtrado
+            // 🔥 CAPTURA DATAS DOS INPUTS
+            const dataInicioStr = document.getElementById("dataInicio")?.value;
+            const dataFimStr = document.getElementById("dataFim")?.value;
+        
+            function formatarDataLocal(data) {
+                const ano = data.getFullYear();
+                const mes = String(data.getMonth() + 1).padStart(2, '0');
+                const dia = String(data.getDate()).padStart(2, '0');
+                return `${ano}-${mes}-${dia}`;
+            }
+        
+            // 🔥 DEFINE PERÍODO
+            let dataInicio, dataFim;
+        
+            if (dataInicioStr && dataFimStr) {
+                dataInicio = new Date(dataInicioStr + "T00:00:00");
+                dataFim = new Date(dataFimStr + "T23:59:59");
+            } else {
+                dataInicio = calendar.view.activeStart;
+                dataFim = new Date(calendar.view.activeEnd);
+                dataFim.setDate(dataFim.getDate() - 1);
+            }
+        
+            // 🔥 FILTRO DE DATAS (IGUAL AO OUTRO RELATÓRIO)
+            rawData = rawData.filter(e => {
+                if (!e.data) return false;
+        
+                const dataStr = e.data.substring(0,10);
+        
+                const inicioStr = dataInicioStr 
+                    ? dataInicioStr 
+                    : formatarDataLocal(dataInicio);
+        
+                const fimStr = dataFimStr 
+                    ? dataFimStr 
+                    : formatarDataLocal(dataFim);
+        
+                return dataStr >= inicioStr && dataStr <= fimStr;
+            });
+        
+            if (!rawData.length) {
+                alert("Nenhum dado encontrado para o período.");
+                return;
+            }
+        
+            // 🔥 DESCOBRE SETOR
             const setorSelecionado = rawData[0]?.setor;
         
             if (!setorSelecionado) {
@@ -1783,10 +1828,10 @@
                 return;
             }
         
-            // Ordena por data
+            // 🔥 ORDENA
             rawData.sort((a,b)=> (a.data || "").localeCompare(b.data || ""));
         
-            // Agrupar por data
+            // 🔥 AGRUPA
             const grouped = {};
             rawData.forEach(e => {
                 const d = e.data.substring(0,10);
@@ -1794,11 +1839,11 @@
                 grouped[d].push(e);
             });
         
+            // 🔥 CABEÇALHO
             doc.setFontSize(12);
             doc.text(`Relatório Individual - ${setorSelecionado}`, 14, 15);
         
             const agora = new Date();
-
             const dataHora = agora.toLocaleString('pt-BR', {
                 day: '2-digit',
                 month: '2-digit',
@@ -1806,11 +1851,14 @@
                 hour: '2-digit',
                 minute: '2-digit'
             });
-            
+        
+            function formatarDataBR(data) {
+                return data.toLocaleDateString('pt-BR');
+            }
+        
             doc.setFontSize(10);
-            
             doc.text(
-                `Período: ${calendar?.view?.title || ''} | Gerado em: ${dataHora}`,
+                `Período: ${formatarDataBR(dataInicio)} até ${formatarDataBR(dataFim)} | Gerado em: ${dataHora}`,
                 14,
                 19
             );
@@ -1829,27 +1877,25 @@
                 };
         
                 grouped[dateKey].forEach(e => {
-
+        
                     const turno = (e.turno || "").toUpperCase().trim();
-
+        
                     const turnoNum =
                         turno === "PRIMEIRO" ? "1" :
                         (turno === "SEGUNDO" || turno === "SEGUNDO PARC") ? "2" :
-                        turno === "TERCEIRO" ? "3" :
-                        "";
+                        turno === "TERCEIRO" ? "3" : "";
         
                     let nomeFormatado = e.nome_oficiante;
-
+        
                     if (setorSelecionado === "RECEPÇÃO") {
-                    
                         const horaIni = formatarHoraSimples(e.hora_inicial || e.hora_inicio);
                         const horaFim = formatarHoraSimples(e.hora_final || e.hora_fim);
-                    
+        
                         if (horaIni && horaFim) {
                             nomeFormatado = `${e.nome_oficiante} (${horaIni} às ${horaFim})`;
                         }
                     }
-                    
+        
                     if (linha["T"+turnoNum]) {
                         linha["T"+turnoNum].push(nomeFormatado);
                     }
@@ -1858,114 +1904,38 @@
                 rows.push(linha);
             });
         
-            // DEFINIR COLUNAS DINÂMICAS
+            // 🔥 TABELA DINÂMICA
             let head = [];
             let body = [];
         
-            if (setorSelecionado === "BATISTÉRIO") {
-        
-                head = [["Data", "Turno 1", "Turno 2", "Turno 3"]];
-        
-                body = rows.map(l => [
-                    l.data,
-                    l.T1.join("\n"),
-                    l.T2.join("\n"),
-                    l.T3.join("\n")
-                ]);
-        
-            } else if (setorSelecionado === "RECEPÇÃO") {
-        
+            if (setorSelecionado === "RECEPÇÃO") {
                 head = [["Data", "Turno 1", "Turno 2"]];
-        
-                body = rows.map(l => [
-                    l.data,
-                    l.T1.join("\n"),
-                    l.T2.join("\n")
-                ]);
-        
-            } else if (setorSelecionado === "SELAMENTO") {
-        
+                body = rows.map(l => [l.data, l.T1.join("\n"), l.T2.join("\n")]);
+            } else {
                 head = [["Data", "Turno 1", "Turno 2", "Turno 3"]];
-        
-                body = rows.map(l => [
-                    l.data,
-                    l.T1.join("\n"),
-                    l.T2.join("\n"),
-                    l.T3.join("\n")
-                ]);
+                body = rows.map(l => [l.data, l.T1.join("\n"), l.T2.join("\n"), l.T3.join("\n")]);
             }
         
             doc.autoTable({
-            startY: 20,
-            head: head,
-            body: body,
-            styles: {
-                fontSize: 6,
-                cellPadding: 0.8,
-                lineColor: [0,0,0],
-                lineHeight: 1,
-                valign: 'middle'
-            },
-            headStyles: {
-                fillColor: [40,40,40],
-                textColor: 255
-            },
-            columnStyles: {
-                0: { cellWidth: 35 }
-            },
-            didParseCell: function (data) {
-
-
-                    if (data.section !== 'body') return;
-
-                    const col = data.column.index;
-                    const texto = data.cell.raw || "";
-                    const textoUpper = texto.toUpperCase();
-                
-                    // 🔥 DATA maior e negrito
-                    if (col === 0) {
-                        data.cell.styles.fontSize = 9;
-                        data.cell.styles.fontStyle = 'bold';
-                
-                        // 🔴 Sábado
-                        if (textoUpper.includes("SÁB") || textoUpper.includes("SAB")) {
-                            data.cell.styles.textColor = [200, 0, 0];
-                        }
-                    }
-                
-                    // Bordas
-                    data.cell.styles.lineWidth = 0.4;
-        
-                // Ignora cabeçalho
-                //if (data.section !== 'body') return;
-        
-                //const col = data.column.index;
-        
-                // Não pintar coluna Data
-                //if (col === 0) return;
-        
-                // 🔵 BATISTÉRIO
-                if (setorSelecionado === "BATISTÉRIO") {
-                    data.cell.styles.fillColor = [220, 235, 255];
-                }
-        
-                // 🟡 RECEPÇÃO
-                if (setorSelecionado === "RECEPÇÃO") {
-                    data.cell.styles.fillColor = [255, 248, 200];
-                }
-        
-                // 🌸 SELAMENTO
-                if (setorSelecionado === "SELAMENTO") {
-                    data.cell.styles.fillColor = [255, 220, 235];
-                }
-
-            },
-            theme: 'grid'
-        });
+                startY: 20,
+                head: head,
+                body: body,
+                styles: {
+                    fontSize: 6,
+                    cellPadding: 0.8,
+                    lineColor: [0,0,0],
+                    lineHeight: 1,
+                    valign: 'middle'
+                },
+                headStyles: {
+                    fillColor: [40,40,40],
+                    textColor: 255
+                },
+                theme: 'grid'
+            });
         
             doc.save(`relatorio_${setorSelecionado.toLowerCase()}.pdf`);
         };
-        
         // --- ACTIONS ---
 
         async function uploadFile(file) {
