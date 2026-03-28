@@ -540,7 +540,6 @@
                 selectHoraFinal.value = "";
             }
         };
-        
         window.editarEvento = function(eventId) {
             const evento = calendar.getEventById(eventId);
             if (!evento) return alert("Evento não encontrado");
@@ -584,13 +583,14 @@
                         <option ${ext.turno==="TERCEIRO"?"selected":""}>TERCEIRO</option>
                     </select>
         
-                    <label class="text-sm font-semibold">Hora Inicial</label>
-                    <input type="time" id="editHoraIni" value="${ext.hora_inicial || ''}"
-                        class="w-full mb-3 p-2 border rounded-lg">
+                    <!-- 🔥 CONTAINER RECEPÇÃO -->
+                    <div id="containerEditRecepcao" class="hidden">
+                        <label class="text-sm font-semibold">Hora Inicial</label>
+                        <select id="editHoraIni" class="w-full mb-3 p-2 border rounded-lg"></select>
         
-                    <label class="text-sm font-semibold">Hora Final</label>
-                    <input type="time" id="editHoraFim" value="${ext.hora_final || ''}"
-                        class="w-full mb-4 p-2 border rounded-lg">
+                        <label class="text-sm font-semibold">Hora Final</label>
+                        <select id="editHoraFim" class="w-full mb-4 p-2 border rounded-lg"></select>
+                    </div>
         
                     <div class="flex gap-2">
                         <button onclick="salvarEdicao('${eventId}')"
@@ -613,6 +613,47 @@
         
             container.classList.remove('hidden');
             container.classList.add('flex');
+        
+            // 🔥 ELEMENTOS
+            const selectSetor = document.getElementById("editSetor");
+            const selectTurno = document.getElementById("editTurno");
+            const containerRecepcao = document.getElementById("containerEditRecepcao");
+            const horaIni = document.getElementById("editHoraIni");
+            const horaFim = document.getElementById("editHoraFim");
+        
+            // 🔥 REAPROVEITA SUA FUNÇÃO EXISTENTE
+            function atualizarRecepcao() {
+                if (selectSetor.value === "RECEPÇÃO") {
+                    containerRecepcao.classList.remove("hidden");
+        
+                    // 🔥 popula horários baseado no turno
+                    popularDropdownHorarios(selectTurno.value);
+        
+                    // 🔥 aguarda popular e seta valores
+                    setTimeout(() => {
+                        horaIni.value = ext.hora_inicial || "";
+                        horaFim.value = ext.hora_final || "";
+                    }, 50);
+        
+                } else {
+                    containerRecepcao.classList.add("hidden");
+                    horaIni.value = "";
+                    horaFim.value = "";
+                }
+            }
+        
+            // 🔥 executa ao abrir
+            atualizarRecepcao();
+        
+            // 🔥 ao trocar setor
+            selectSetor.addEventListener("change", atualizarRecepcao);
+        
+            // 🔥 ao trocar turno
+            selectTurno.addEventListener("change", () => {
+                if (selectSetor.value === "RECEPÇÃO") {
+                    popularDropdownHorarios(selectTurno.value);
+                }
+            });
         };
 
         window.salvarEdicao = async function(eventId) {
