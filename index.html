@@ -307,6 +307,8 @@
             const setorSelect = document.getElementById('escala-setor');
             const turnoSelect = document.getElementById('escala-turno');
             const containerHorarios = document.getElementById('container-horarios-recepcao');
+
+            
     
             function popularDropdownHorarios(turno) {
                 const inicioSel = document.getElementById('escala-hora-inicial');
@@ -531,15 +533,23 @@
         
             if (item.setor && item.setor.toUpperCase().includes('RECEPÇÃO')) {
                 containerRecepcao.classList.remove('hidden');
-                // Usando a nova formatação para garantir que o select encontre o valor "07:00"
-                selectHoraInicial.value = formatarHora(item.hora_inicial);
-                selectHoraFinal.value = formatarHora(item.hora_final);
+            
+                // 🔥 PRIMEIRO: popula os horários
+                popularDropdownHorarios(item.turno);
+            
+                // 🔥 DEPOIS: define valor (espera renderizar)
+                setTimeout(() => {
+                    selectHoraInicial.value = formatarHora(item.hora_inicial);
+                    selectHoraFinal.value = formatarHora(item.hora_final);
+                }, 50);
+            
             } else {
                 containerRecepcao.classList.add('hidden');
                 selectHoraInicial.value = "";
                 selectHoraFinal.value = "";
             }
         };
+        
         window.editarEvento = function(eventId) {
             const evento = calendar.getEventById(eventId);
             if (!evento) return alert("Evento não encontrado");
@@ -625,16 +635,15 @@
             function atualizarRecepcao() {
                 if (selectSetor.value === "RECEPÇÃO") {
                     containerRecepcao.classList.remove("hidden");
-        
-                    // 🔥 popula horários baseado no turno
-                    popularDropdownHorarios(selectTurno.value);
-        
-                    // 🔥 aguarda popular e seta valores
+            
+                    // 🔥 AGORA CORRETO
+                    popularDropdownHorarios(selectTurno.value, "editHoraIni", "editHoraFim");
+            
                     setTimeout(() => {
-                        horaIni.value = ext.hora_inicial || "";
-                        horaFim.value = ext.hora_final || "";
+                        horaIni.value = formatarHora(ext.hora_inicial);
+                        horaFim.value = formatarHora(ext.hora_final);
                     }, 50);
-        
+            
                 } else {
                     containerRecepcao.classList.add("hidden");
                     horaIni.value = "";
