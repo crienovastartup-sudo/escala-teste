@@ -705,6 +705,8 @@
             const evento = calendar.getEventById(eventId);
             if (!evento) return alert("Evento não encontrado");
         
+            const ext = evento.extendedProps;
+        
             const selectOficiante = document.getElementById("editOficiante");
             const data = document.getElementById("editData").value;
             const setor = document.getElementById("editSetor").value;
@@ -740,25 +742,33 @@
                 return;
             }
         
-            // 🔥 SALVA NO SHEET (ANTES de atualizar tela)
+            // 🔥 PAYLOAD CORRETO
             const payload = {
                 action: "updateEscala",
+        
                 data,
                 id_oficiante,
                 nome_oficiante: nome,
                 setor,
                 turno,
-                id_original: eventId,
+        
+                // ✅ CORREÇÃO PRINCIPAL
+                id_original: ext.id_oficiante,
+        
+                // ✅ esses dois já estavam corretos
                 data_original: evento.startStr.substring(0,10),
-                turno_original: evento.extendedProps.turno,
+                turno_original: ext.turno,
+        
                 hora_inicial: horaIni,
                 hora_final: horaFim
             };
         
+            console.log("ENVIANDO:", payload);
+        
             const res = await apiCall(payload);
         
             if (res.status !== "ok") {
-                alert("Erro ao salvar no banco");
+                alert("Erro ao salvar no banco: " + res.message);
                 return;
             }
         
