@@ -308,7 +308,27 @@
             const turnoSelect = document.getElementById('escala-turno');
             const containerHorarios = document.getElementById('container-horarios-recepcao');
 
+            function formatarHora(hora) {
+                if (!hora) return "";
             
+                // Se já está correto
+                if (typeof hora === "string" && hora.match(/^\d{2}:\d{2}$/)) {
+                    return hora;
+                }
+            
+                // Se vem como "07:00:00"
+                if (typeof hora === "string" && hora.includes(":")) {
+                    return hora.substring(0, 5);
+                }
+            
+                // Se vier como Date
+                const d = new Date(hora);
+                if (!isNaN(d)) {
+                    return d.toTimeString().substring(0, 5);
+                }
+            
+                return "";
+            }
     
             function popularDropdownHorarios(turno, idInicio = 'escala-hora-inicial', idFim = 'escala-hora-final') {
                 const inicioSel = document.getElementById(idInicio);
@@ -1212,27 +1232,7 @@
             });
         }
 
-        function formatarHora(hora) {
-            if (!hora) return "";
         
-            // Se já está correto
-            if (typeof hora === "string" && hora.match(/^\d{2}:\d{2}$/)) {
-                return hora;
-            }
-        
-            // Se vem como "07:00:00"
-            if (typeof hora === "string" && hora.includes(":")) {
-                return hora.substring(0, 5);
-            }
-        
-            // Se vier como Date
-            const d = new Date(hora);
-            if (!isNaN(d)) {
-                return d.toTimeString().substring(0, 5);
-            }
-        
-            return "";
-        }
         // --- RELATÓRIOS PDF ---
         // --- RELATÓRIOS PDF ATUALIZADOS ---
 
