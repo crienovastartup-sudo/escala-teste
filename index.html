@@ -1764,7 +1764,7 @@
 
 
         window.relatorioIndividualPorSetor = function() {
-
+        
             const { jsPDF } = window.jspdf;
             const doc = new jsPDF('landscape');
         
@@ -1798,7 +1798,7 @@
                 dataFim.setDate(dataFim.getDate() - 1);
             }
         
-            // 🔥 FILTRO DE DATAS (IGUAL AO OUTRO RELATÓRIO)
+            // 🔥 FILTRO DE DATAS
             rawData = rawData.filter(e => {
                 if (!e.data) return false;
         
@@ -1904,7 +1904,7 @@
                 rows.push(linha);
             });
         
-            // 🔥 TABELA DINÂMICA
+            // 🔥 TABELA
             let head = [];
             let body = [];
         
@@ -1931,6 +1931,51 @@
                     fillColor: [40,40,40],
                     textColor: 255
                 },
+        
+                // 🔥 AQUI ESTÁ O UPGRADE VISUAL
+                didParseCell: function (data) {
+        
+                    if (data.section !== 'body') return;
+        
+                    const col = data.column.index;
+                    const texto = data.cell.raw || "";
+                    const textoUpper = texto.toUpperCase();
+        
+                    // 🔥 DATA
+                    if (col === 0) {
+                        data.cell.styles.fontSize = 12;
+                        data.cell.styles.fontStyle = 'bold';
+        
+                        // 🔴 SÁBADO
+                        if (textoUpper.includes("SÁB") || textoUpper.includes("SAB")) {
+                            data.cell.styles.textColor = [200, 0, 0];
+                            data.cell.styles.fontStyle = 'bold';
+                            data.cell.styles.fontSize = 12;
+                        }
+                    }
+        
+                    // 🔥 BORDAS
+                    data.cell.styles.lineWidth = 0.4;
+        
+                    // NÃO COLORIR COLUNA DATA
+                    if (col === 0) return;
+        
+                    // 🔵 BATISTÉRIO
+                    if (setorSelecionado === "BATISTÉRIO") {
+                        data.cell.styles.fillColor = [220, 235, 255];
+                    }
+        
+                    // 🟡 RECEPÇÃO
+                    if (setorSelecionado === "RECEPÇÃO") {
+                        data.cell.styles.fillColor = [255, 248, 200];
+                    }
+        
+                    // 🌸 SELAMENTO
+                    if (setorSelecionado === "SELAMENTO") {
+                        data.cell.styles.fillColor = [255, 220, 235];
+                    }
+                },
+        
                 theme: 'grid'
             });
         
