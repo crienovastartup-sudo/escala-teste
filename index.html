@@ -2084,39 +2084,101 @@
             e.preventDefault();
         
             const ofi = document.getElementById('escala-oficiante');
+        
             const idOrig = String(document.getElementById('escala-id-original').value || "").trim();
+            const data = document.getElementById('escala-data').value;
+            const turnoSelecionado = document.getElementById('escala-turno').value;
+        
+            const id_oficiante = ofi.value;
+            const nome_oficiante = ofi.options[ofi.selectedIndex].text;
         
             const payload = {
                 action: idOrig ? "updateEscala" : "addEscala",
         
-                data: document.getElementById('escala-data').value,
-                id_oficiante: ofi.value,
-                nome_oficiante: ofi.options[ofi.selectedIndex].text,
+                data,
+                id_oficiante,
+                nome_oficiante,
         
                 setor: document.getElementById('escala-setor').value,
-                turno: document.getElementById('escala-turno').value,
+                turno: turnoSelecionado,
         
-                // 🔥 ESSENCIAIS PARA UPDATE
                 id_original: idOrig,
                 data_original: document.getElementById('escala-data-original').value,
                 turno_original: document.getElementById('escala-turno-original').value,
         
-                // 🔥 HORÁRIOS
                 hora_inicial: document.getElementById('escala-hora-inicial').value || "",
                 hora_final: document.getElementById('escala-hora-final').value || ""
             };
         
             console.log("📤 ENVIANDO:", payload);
         
+            // 🔥 🔥 🔥 VALIDAÇÃO AQUI 🔥 🔥 🔥
+        
+            const lista = typeof getFilteredData === "function" ? getFilteredData() : [];
+        
+            const conflitoItem = lista.find(item => {
+        
+                // ignora o próprio registro em edição
+                if (idOrig &&
+                    String(item.id_oficiante) === String(idOrig) &&
+                    item.data.substring(0,10) === document.getElementById('escala-data-original').value &&
+                    item.turno === document.getElementById('escala-turno-original').value
+                ) {
+                    return false;
+                }
+        
+                return (
+                    String(item.id_oficiante) === String(id_oficiante) &&
+                    item.data.substring(0,10) === data &&
+                    (item.turno || "").toUpperCase().trim() === (turnoSelecionado || "").toUpperCase().trim()
+                );
+            });
+        
+            // 🔴 BLOQUEIA MESMO TURNO
+            if (conflitoItem) {
+        
+                const setorExistente = conflitoItem.setor || "N/A";
+                const turnoExistente = conflitoItem.turno || "N/A";
+        
+                alert(
+                    `❌ O oficiante já está escalado neste dia para o setor ${setorExistente}, turno ${turnoExistente}.\n\nNão é permitido duplicar no mesmo turno.`
+                );
+        
+                return; // 🚫 BLOQUEIA TOTAL
+            }
+        
+            // 🔶 AVISO (MESMO DIA, OUTRO TURNO)
+            const conflitoDia = lista.find(item => {
+        
+                return (
+                    String(item.id_oficiante) === String(id_oficiante) &&
+                    item.data.substring(0,10) === data &&
+                    (item.turno || "").toUpperCase().trim() !== (turnoSelecionado || "").toUpperCase().trim()
+                );
+            });
+        
+            if (conflitoDia) {
+        
+                const setorExistente = conflitoDia.setor || "N/A";
+                const turnoExistente = conflitoDia.turno || "N/A";
+        
+                const confirmar = confirm(
+                    `⚠️ O oficiante já está escalado neste dia para o setor ${setorExistente}, turno ${turnoExistente}.\n\nDeseja continuar mesmo assim?`
+                );
+        
+                if (!confirmar) return;
+            }
+        
+            // 🔥 AGORA SIM SALVA
             const res = await apiCall(payload);
         
             if (res.status === "ok") {
                 closeModal('modal-escala');
-                fetchData(); // 🔥 atualiza calendário
+                fetchData();
             } else {
                 alert(res.message || "Erro ao salvar");
             }
-        };    
+        };
 
         window.deleteOficiante = async (id) => {
             if(confirm("Deseja realmente excluir este oficiante? Isso não removerá escalas passadas, mas impedirá novas.")) {
