@@ -2047,36 +2047,104 @@
         };
 
         window.editOficiante = (o) => {
+
             document.getElementById('oficiante-id').value = o.id;
             document.getElementById('oficiante-nome').value = o.nome;
             document.getElementById('oficiante-modal-title').innerText = 'Editar Oficiante';
-            if(o.foto1) document.getElementById('prev-foto1').classList.remove('hidden');
-            if(o.foto2) document.getElementById('prev-foto2').classList.remove('hidden');
+        
+            // 🔥 FOTO 1
+            const prev1 = document.getElementById('prev-foto1');
+            if (o.foto1) {
+                prev1.src = o.foto1;
+                prev1.classList.remove('hidden');
+            } else {
+                prev1.classList.add('hidden');
+            }
+        
+            // 🔥 FOTO 2
+            const prev2 = document.getElementById('prev-foto2');
+            if (o.foto2) {
+                prev2.src = o.foto2;
+                prev2.classList.remove('hidden');
+            } else {
+                prev2.classList.add('hidden');
+            }
+        
             openModal('modal-oficiante');
         };
 
         document.getElementById('form-oficiante').onsubmit = async (e) => {
             e.preventDefault();
+        
             const id = document.getElementById('oficiante-id').value;
+            const nome = document.getElementById('oficiante-nome').value.trim();
+        
             const f1File = document.getElementById('oficiante-foto1').files[0];
             const f2File = document.getElementById('oficiante-foto2').files[0];
-            
+        
+            const prev1 = document.getElementById('prev-foto1');
+            const prev2 = document.getElementById('prev-foto2');
+        
+            // 🔴 VALIDA NOME
+            if (!nome) {
+                alert("⚠️ Informe o nome do oficiante.");
+                return;
+            }
+        
+            // 🔴 VALIDA FOTO (nova OU existente)
+            const temFotoExistente = (!prev1.classList.contains('hidden') || !prev2.classList.contains('hidden'));
+            const temFotoNova = (f1File || f2File);
+        
+            if (!temFotoExistente && !temFotoNova) {
+                alert("⚠️ É necessário adicionar pelo menos uma foto.");
+                return;
+            }
+        
+            // 🔴 VALIDA NOME DUPLICADO
+            const lista = typeof oficiantes !== "undefined" ? oficiantes : [];
+        
+            const nomeExiste = lista.some(o => {
+                return (
+                    o.nome.toLowerCase().trim() === nome.toLowerCase().trim() &&
+                    String(o.id) !== String(id) // ignora o próprio na edição
+                );
+            });
+        
+            if (nomeExiste) {
+                alert("⚠️ Já existe um oficiante com esse nome.");
+                return;
+            }
+        
+            // 🔥 UPLOAD DAS FOTOS
             let f1 = f1File ? await uploadFile(f1File) : "";
             let f2 = f2File ? await uploadFile(f2File) : "";
-
-            // Se for edição e não subiu nova foto, mantém a antiga (o backend precisa tratar isso ou enviamos a URL atual)
-            // Para simplicidade, assumimos que se o campo estiver vazio na edição o backend mantém.
-            
+        
+            // 🔥 SE NÃO ENVIOU NOVA, MANTÉM EXISTENTE
+            if (!f1 && !prev1.classList.contains('hidden')) {
+                f1 = prev1.src;
+            }
+        
+            if (!f2 && !prev2.classList.contains('hidden')) {
+                f2 = prev2.src;
+            }
+        
             const payload = { 
                 action: id ? "updateOficiante" : "addOficiante", 
                 id, 
-                nome: document.getElementById('oficiante-nome').value, 
+                nome, 
                 foto1: f1, 
                 foto2: f2 
             };
-            
+        
             const res = await apiCall(payload);
-            if (res.status === "ok") { closeModal('modal-oficiante'); fetchData(); e.target.reset(); }
+        
+            if (res.status === "ok") {
+                closeModal('modal-oficiante');
+                fetchData();
+                e.target.reset();
+            } else {
+                alert(res.message || "Erro ao salvar");
+            }
         };
 
 
