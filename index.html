@@ -356,7 +356,7 @@
             function handleRecepcaoDisplay() {
                 if (setorSelect.value === 'RECEPÇÃO') {
                     containerHorarios.classList.remove('hidden');
-                    popularDropdownHorarios(turnoSelect.value);
+                    popularDropdownHorarios(turnoSelect.value, 'escala-hora-inicial', 'escala-hora-final');
                 } else {
                     containerHorarios.classList.add('hidden');
                 }
@@ -370,7 +370,7 @@
     
             setorSelect.addEventListener('change', handleRecepcaoDisplay);
             turnoSelect.addEventListener('change', () => {
-                if (setorSelect.value === 'RECEPÇÃO') popularDropdownHorarios(turnoSelect.value);
+                if (setorSelect.value === 'RECEPÇÃO') popularDropdownHorarios(turnoSelect.value, 'escala-hora-inicial', 'escala-hora-final');
             });
 
     
